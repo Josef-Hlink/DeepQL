@@ -28,7 +28,7 @@ class DeepQLearningAgent:
         self.model = Sequential()
         self.model.add(Dense(24, input_shape=(1,4), activation='relu'))
         self.model.add(Dense(24, activation='relu'))
-        self.model.add(Dense(self.actionSize, activation='linear'))
+        self.model.add(Dense(1, activation='linear'))
 
         self.model.compile(loss='mse', optimizer=Adam(learning_rate=self.learningRate))
 
@@ -40,12 +40,11 @@ class DeepQLearningAgent:
             return np.random.randint(0, self.actionSize)
         
 
-        prediction = self.model.predict(state)
-        print(prediction)
-        print(prediction.shape)
-        a = np.argmax(self.model.predict(state))
-        print(a)
-        return a
+        state = tf.convert_to_tensor(state, dtype=tf.float32)
+        state = tf.reshape(state, [1, 1, 4])
+
+
+        return np.argmax(self.model.predict(state, verbose=0)[0])
     
     def epsilonAnneal(self):
 
@@ -74,7 +73,12 @@ class DeepQLearningAgent:
             nextState = item['nextState']
             done = item['done']
 
-            # print("state: " + str(state.shape))
+            state = tf.convert_to_tensor(state, dtype=tf.float32)
+            state = tf.reshape(state, [1, 1, 4])
+
+            nextState = tf.convert_to_tensor(state, dtype=tf.float32)
+            nextSstate = tf.reshape(nextState, [1, 1, 4])
+
             target_f = self.model.predict(state, verbose=0)
             target = reward
 
