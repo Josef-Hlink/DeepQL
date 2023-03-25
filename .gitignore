@@ -4,6 +4,7 @@ venv
 dql.egg-info
 dist
 build
+.vscode
 
 # project specific directories
 docs

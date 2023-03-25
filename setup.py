@@ -13,6 +13,7 @@ install_requires = [
     'ipykernel',
     'jupyter',
     'gym',
+    'pygame',
     'tensorflow; platform_system!="Darwin"',
     'tensorflow-gpu; platform_system!="Darwin"',
     'tensorflow-macos; platform_system=="Darwin"',
