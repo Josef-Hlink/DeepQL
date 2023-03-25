@@ -4,7 +4,6 @@ import argparse
 from time import sleep  # temporary
 
 from .utils.parsewrapper import ParseWrapper
-from .utils.namespaces import P, UC, LC
 from .utils.helpers import fixDirectories, PrintIfVerbose, PrintIfDebug, prog
 
 def main():

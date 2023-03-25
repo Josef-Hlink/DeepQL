@@ -24,7 +24,12 @@ Lower than 3.10 might cause issues with `tensorflow` and the recent improvements
   - when working with an inferior shell such as powershell, use `venv\Scripts\activate`, you might even need to use the `.ps1` or `.bat` script
 4. Install the requirements
   - `pip install -e .` (should work on all platforms)
-5. From the root directory, you can run the package with `dql`
+
+## Usage
+
+From the root directory, you can now run the package with the command `dql`
   - When using for the first time, run with the help flag to see the available arguments: `dql -h` or `dql --help`
 
-If _setup.py_ did not work (step 4), please manually identify the dependencies and run the project with `python3.10 dql/main.py`.
+If _setup.py_ did not work (step 4), please manually identify & install the dependencies and run the project with `python3.10 dql/main.py`.
+
+Note that you will have to remove the dots from the imports in _dql/main.py_: `from .utils.module import func` $\to$ `from utils.module import func`.
