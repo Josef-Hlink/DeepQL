@@ -1,2 +1,12 @@
+# usual python directories
+__pycache__
 venv
+dql.egg-info
+dist
+build
+
+# project specific directories
 docs
+report
+data
+plots
