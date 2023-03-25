@@ -13,6 +13,7 @@ from keras.optimizers import Adam
 class DeepQLearningAgent:
 
     def __init__(self, learningRate=0.001, gamma=0.99, epsilon=1.0, batchSize=32, memorySize=2000):
+
         self.learningRate = learningRate
         self.gamma = gamma
         self.epsilon = epsilon
@@ -22,8 +23,8 @@ class DeepQLearningAgent:
 
 
         self.model = Sequential()
-        self.model.add(Dense(16, input_shape=(1,4), activation='relu'))
-        self.model.add(Dense(16, activation='relu'))
+        self.model.add(Dense(24, input_shape=(1,4), activation='relu'))
+        self.model.add(Dense(24, activation='relu'))
         self.model.add(Dense(2, activation='linear'))
 
         self.model.compile(loss='mse', optimizer=Adam(learning_rate=self.learningRate))
@@ -35,17 +36,15 @@ class DeepQLearningAgent:
             
             return np.random.randint(0, 2)
         
-
         state = tf.convert_to_tensor(state, dtype=tf.float32)
         state = tf.reshape(state, [1, 1, 4])
-
 
         return np.argmax(self.model.predict(state, verbose=0)[0])
     
     def epsilonAnneal(self):
 
         if self.epsilon > 0.1:
-            self.epsilon *= 0.90
+            self.epsilon *= 0.95
     
     def remember(self, state, action, reward, nextState, done):
 
@@ -83,18 +82,20 @@ class DeepQLearningAgent:
 
                 target = reward + self.gamma * np.amax(self.model.predict(nextState, verbose=0)[0])
 
+
+            print(target_f)
             target_f[0][0][action] = target
 
             self.model.fit(state, target_f, epochs=1, verbose=0)
 
 def main():
 
-    env = gym.make('CartPole-v1')
+    env = gym.make('CartPole-v1', render_mode='human')
 
     StateSize = env.observation_space.shape[0]
     ActionSize = env.action_space.n
 
-    episodes = 100
+    episodes = 20
     maxIterations = 500 #max of cartpole
 
     scores = []
