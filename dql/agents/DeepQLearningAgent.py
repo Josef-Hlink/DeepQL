@@ -12,20 +12,18 @@ from keras.optimizers import Adam
 
 class DeepQLearningAgent:
 
-    def __init__(self,StateSize, ActionSize):
-        self.learningRate = 0.001
-        self.gamma = 0.99
-        self.epsilon = 1.0
-        self.batchSize = 32
+    def __init__(self, learningRate=0.001, gamma=0.99, epsilon=1.0, batchSize=32, memorySize=2000):
+        self.learningRate = learningRate
+        self.gamma = gamma
+        self.epsilon = epsilon
+        self.batchSize = batchSize
 
-        self.actionSize = ActionSize
-        self.stateSize = StateSize
+        self.memory = deque(maxlen=memorySize)
 
-        self.memory = deque(maxlen=2000)
 
         self.model = Sequential()
-        self.model.add(Dense(24, input_shape=(1,4), activation='relu'))
-        self.model.add(Dense(24, activation='relu'))
+        self.model.add(Dense(16, input_shape=(1,4), activation='relu'))
+        self.model.add(Dense(16, activation='relu'))
         self.model.add(Dense(2, activation='linear'))
 
         self.model.compile(loss='mse', optimizer=Adam(learning_rate=self.learningRate))
@@ -35,7 +33,7 @@ class DeepQLearningAgent:
 
         if np.random.rand() < self.epsilon:
             
-            return np.random.randint(0, self.actionSize)
+            return np.random.randint(0, 2)
         
 
         state = tf.convert_to_tensor(state, dtype=tf.float32)
@@ -47,7 +45,7 @@ class DeepQLearningAgent:
     def epsilonAnneal(self):
 
         if self.epsilon > 0.1:
-            self.epsilon *= 0.95
+            self.epsilon *= 0.90
     
     def remember(self, state, action, reward, nextState, done):
 
@@ -94,10 +92,9 @@ def main():
     env = gym.make('CartPole-v1')
 
     StateSize = env.observation_space.shape[0]
-    # print("State size: " + str(StateSize))
     ActionSize = env.action_space.n
 
-    episodes = 20
+    episodes = 100
     maxIterations = 500 #max of cartpole
 
     scores = []
@@ -105,9 +102,6 @@ def main():
     Agent = DeepQLearningAgent(StateSize, ActionSize)
 
     for i in range(episodes):
-
-        print("Episode: {}/{}".format(i, episodes))
-
 
         state, _ = env.reset()
         state = np.array(state)
