@@ -27,8 +27,9 @@ Lower than 3.10 might cause issues with `tensorflow` and the recent improvements
 
 ## Usage
 
-From the root directory, you can now run the package with the command `dql`
-  - When using for the first time, run with the help flag to see the available arguments: `dql -h` or `dql --help`
+From the root directory, you can now run the package with the command `dql`.
+
+When using for the first time, run with the help flag to see the available arguments: `dql -h` or `dql --help`.
 
 If _setup.py_ did not work (step 4), please manually identify & install the dependencies and run the project with `python3.10 dql/main.py`.
 
