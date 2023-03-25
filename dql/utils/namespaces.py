@@ -4,12 +4,20 @@ import os
 
 
 class UC:
-    """ Namespace with a few UniCode characters for Greek symbols in stdout. """
+    """ Namespace with a few UniCode characters for Greek symbols and ASCII art in stdout. """
     e = '\u03b5'  # epsilon
     t = '\u03c4'  # tau
     z = '\u03b6'  # zeta
     g = '\u03b3'  # gamma
     a = '\u03b1'  # alpha
+    tl = '\u250c'  # ┌
+    bl = '\u2514'  # └
+    tr = '\u2510'  # ┐
+    br = '\u2518'  # ┘
+    hd = '\u2500'  # ─
+    vd = '\u2502'  # │
+    block = '\u25a0'  # ■
+    empty = '\u25a1'  # □
 
 class LC:
     """ Namespace with a few LaTeX commands for Greek symbols in plots. """

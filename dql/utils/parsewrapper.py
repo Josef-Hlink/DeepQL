@@ -1,8 +1,10 @@
-import os
-import warnings
+""" Houses the ParseWrapper class. """
+
 from argparse import ArgumentParser
 from datetime import datetime
-from .namespaces import P, UC
+
+from .namespaces import UC
+from .minis import bold
 
 
 class ParseWrapper:
@@ -49,14 +51,14 @@ class ParseWrapper:
     def __call__(self) -> dict[str, any]:
         """ Returns the parsed and processed arguments as a standard dictionary. """
         if self.args['verbose']:
-            print('-' * 80)
+            print(UC.hd * 80)
             print('Experiment will be ran with the following parameters:')
             for arg, value in self.args.items():
                 if self.defaults[arg] != value:
-                    print(f'\033[1m{arg:>19}\033[0m | {value}')
+                    print(f'{bold(arg):>27} {UC.vd} {value}')
                 else:
-                    print(f'{arg:>19} | {value}')
-            print('-' * 80)
+                    print(f'{arg:>19} {UC.vd} {value}')
+            print(UC.hd * 80)
         return self.args
 
     @staticmethod

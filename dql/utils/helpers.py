@@ -5,7 +5,7 @@ from typing import Iterator, Iterable, Optional
 from time import perf_counter
 from datetime import datetime
 
-from .namespaces import P
+from .namespaces import P, UC
 from .minis import bold, formatRuntime
 from .progressbar import ProgressBar
 
@@ -56,7 +56,9 @@ class PrintIfDebug:
 
     def __call__(self, *args, **kwargs):
         if self.debug:
-            print('\033[1m\033[94mDEBUG\033[0m', end=' - ')
-            print(datetime.now().strftime('%H:%M:%S.%f')[:-3])
+            debugTag = ' \033[1m\033[96mDEBUG\033[0m '
+            timeStamp = ' ' + datetime.now().strftime('%H:%M:%S.%f')[:-3] + ' '
+            print(UC.tl + UC.hd * 28 + debugTag + UC.hd + timeStamp + UC.hd * 28 + UC.tr)
+            print(' ', end='', flush=True)
             print(*args, **kwargs)
-            print('-' * 20)
+            print(UC.bl + UC.hd * 78 + UC.br)

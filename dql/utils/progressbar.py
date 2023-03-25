@@ -1,22 +1,21 @@
+""" Houses the ProgressBar class. """
+
 from typing import Optional
 from time import perf_counter
 from datetime import datetime
 
+from .namespaces import UC
 from .minis import bold, formatRuntime
 
 
 class ProgressBar:
-    w: int = 50
-    guard: str = '|'
-    block = '\u25a0'  # ■
-    empty = '\u25a1'  # □
 
     def __init__(self, total: int, title: Optional[str] = None):
         self.total = total
         self.title = title
+        self.w = 50
         self.tic = perf_counter()
         print(f'Starting {bold(self.title)} at {datetime.now().strftime("%H:%M:%S")}')
-        self.bar = self.guard + self.empty * self.w + self.guard
         self.update(0)
     
     def update(self, i: int):
@@ -35,4 +34,4 @@ class ProgressBar:
     def _updateBar(self):
         """ Updates the progress bar. """
         n = int(self.w * self.i / self.total)
-        self.bar = self.guard + self.block * n + self.empty * (self.w - n) + self.guard + f' {self.percentage}%'
+        self.bar = UC.block * n + UC.empty * (self.w - n) + f' {self.percentage}%'
