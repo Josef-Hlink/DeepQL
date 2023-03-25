@@ -23,12 +23,10 @@ class DeepQLearningAgent:
 
         self.memory = deque(maxlen=2000)
 
-
-        #neural network with 4 inputs, 2 hidden layers with 24 nodes each, and 2 outputs
         self.model = Sequential()
         self.model.add(Dense(24, input_shape=(1,4), activation='relu'))
         self.model.add(Dense(24, activation='relu'))
-        self.model.add(Dense(1, activation='linear'))
+        self.model.add(Dense(2, activation='linear'))
 
         self.model.compile(loss='mse', optimizer=Adam(learning_rate=self.learningRate))
 
@@ -36,7 +34,7 @@ class DeepQLearningAgent:
     def epsilonGreedyAction(self, state):
 
         if np.random.rand() < self.epsilon:
-
+            
             return np.random.randint(0, self.actionSize)
         
 
@@ -48,8 +46,8 @@ class DeepQLearningAgent:
     
     def epsilonAnneal(self):
 
-        if self.epsilon > 0.01:
-            self.epsilon *= 0.90
+        if self.epsilon > 0.1:
+            self.epsilon *= 0.95
     
     def remember(self, state, action, reward, nextState, done):
 
@@ -64,6 +62,7 @@ class DeepQLearningAgent:
             return
 
         batch = np.random.choice(self.memory, self.batchSize)
+        
 
         for item in batch:
 
@@ -77,7 +76,7 @@ class DeepQLearningAgent:
             state = tf.reshape(state, [1, 1, 4])
 
             nextState = tf.convert_to_tensor(state, dtype=tf.float32)
-            nextSstate = tf.reshape(nextState, [1, 1, 4])
+            nextState = tf.reshape(nextState, [1, 1, 4])
 
             target_f = self.model.predict(state, verbose=0)
             target = reward
@@ -86,13 +85,13 @@ class DeepQLearningAgent:
 
                 target = reward + self.gamma * np.amax(self.model.predict(nextState, verbose=0)[0])
 
-            target_f[0][action] = target
+            target_f[0][0][action] = target
 
             self.model.fit(state, target_f, epochs=1, verbose=0)
 
 def main():
 
-    env = gym.make('CartPole-v1', render_mode='human')
+    env = gym.make('CartPole-v1')
 
     StateSize = env.observation_space.shape[0]
     # print("State size: " + str(StateSize))
@@ -100,6 +99,8 @@ def main():
 
     episodes = 20
     maxIterations = 500 #max of cartpole
+
+    scores = []
 
     Agent = DeepQLearningAgent(StateSize, ActionSize)
 
@@ -127,10 +128,13 @@ def main():
 
             if done:
                 print("Episode: {}/{}, score: {}, e: {:.2}".format(i, episodes, j, Agent.epsilon))
+                scores.append(j)
                 Agent.epsilonAnneal()
                 break
 
         Agent.replay()
+
+    print(scores)
 
 if __name__ == "__main__":
     main()
