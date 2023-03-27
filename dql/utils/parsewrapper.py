@@ -24,6 +24,9 @@ class ParseWrapper:
         parser.add_argument('-g', '--gamma', dest='gamma',
             type=float, default=0.99, help=f'Discount factor ({UC.g})'
         )
+        parser.add_argument('-l', '--episode-length', dest='episodeLength',
+            type=int, default=500, help='Episode length'
+        )
         parser.add_argument('-n', '--n-episodes', dest='numEpisodes',
             type=int, default=100, help='Budget in episodes'
         )
@@ -32,6 +35,9 @@ class ParseWrapper:
         )
         parser.add_argument('-b', '--batch-size', dest='batchSize',
             type=int, default=32, help='Batch size'
+        )
+        parser.add_argument('-m', '--memory-size', dest='memorySize',
+            type=int, default=2000, help='Memory size'
         )
         parser.add_argument('-i', '--run-id', dest='runID',
             type=str, default=None,
@@ -90,10 +96,14 @@ class ParseWrapper:
             f'Learning rate {UC.a} must be in [0, 1]'
         assert 0 <= self.args['gamma'] <= 1, \
             f'Discount factor {UC.g} must be in [0, 1]'
-        assert 0 < self.args['numEpisodes'] < 1000, \
-            'Number of episodes must be in {0 .. 1000}'
-        assert 0 < self.args['numRepetitions'] < 100, \
-            'Number of repetitions must be in {0 .. 100}'
+        assert 0 < self.args['episodeLength'] <= 500, \
+            'Episode length must be in {1 .. 500}'
+        assert 0 < self.args['numEpisodes'] <= 1000, \
+            'Number of episodes must be in {1 .. 1000}'
+        assert 0 < self.args['numRepetitions'] <= 100, \
+            'Number of repetitions must be in {1 .. 100}'
         assert self.args['batchSize'] in {1, 2, 4, 8, 16, 32, 64, 128}, \
             'Batch size must be a power of 2 in {1 .. 128}'
+        assert 0 <= self.args['memorySize'] <= 20_000, \
+            'Memory size must be in {0 .. 20_000}'
         return

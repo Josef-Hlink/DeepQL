@@ -5,6 +5,7 @@ dql.egg-info
 dist
 build
 .vscode
+explore.ipynb
 
 # project specific directories
 docs

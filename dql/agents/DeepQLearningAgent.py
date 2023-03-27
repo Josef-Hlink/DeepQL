@@ -1,9 +1,9 @@
 from collections import deque
+
+from dql.utils.helpers import PrintIfVerbose, PrintIfDebug, prog
+
 import numpy as np
-
 import gym
-
-
 import tensorflow as tf
 from tensorflow import keras
 from keras.models import Sequential
@@ -12,23 +12,48 @@ from keras.optimizers import Adam
 
 class DeepQLearningAgent:
 
-    def __init__(self, learningRate=0.001, gamma=0.99, epsilon=1.0, batchSize=32, memorySize=2000):
+    def __init__(self,
+        explorationStrategy: str,
+        alpha: float, gamma: float, explorationValue: float,
+        batchSize: int, memorySize: int,
+        actionSpace: int, stateSpace: int
+    ) -> None:
 
-        self.learningRate = learningRate
+        # TODO implement bm and ucb
+        self.takeAction: function = {
+            'e-greedy': self.epsilonGreedyAction,
+            'boltzmann': self.boltzmannAction,
+            'ucb': self.ucbAction
+        }[explorationStrategy]
+
+        self.explorationStrategy = explorationStrategy
+        self.alpha = alpha
         self.gamma = gamma
-        self.epsilon = epsilon
+        self.explorationValue = explorationValue
         self.batchSize = batchSize
+        self.maxMemorySize = memorySize
+        self.actionSpace = actionSpace
+        self.stateSpace = stateSpace
 
         self.memory = deque(maxlen=memorySize)
+        self._initializeModel()
+        self._setExplorationValues()
 
+
+    def _initializeModel(self) -> None:
 
         self.model = Sequential()
-        self.model.add(Dense(24, input_shape=(1,4), activation='relu'))
+        self.model.add(Dense(24, input_shape=(self.stateSpace,), activation='relu'))
         self.model.add(Dense(24, activation='relu'))
-        self.model.add(Dense(2, activation='linear'))
+        self.model.add(Dense(self.actionSpace, activation='linear'))
 
-        self.model.compile(loss='mse', optimizer=Adam(learning_rate=self.learningRate))
+        self.model.compile(loss='mse', optimizer=Adam(learning_rate=self.alpha))
 
+    def _setExplorationValues(self) -> None:
+        self.epsilon = self.explorationValue if self.explorationStrategy == 'e-greedy' else None
+        self.tau = self.explorationValue if self.explorationStrategy == 'boltzmann' else None
+        self.zeta = self.explorationValue if self.explorationStrategy == 'ucb' else None
+        return
 
     def epsilonGreedyAction(self, state):
 
@@ -37,21 +62,28 @@ class DeepQLearningAgent:
             return np.random.randint(0, 2)
         
         state = tf.convert_to_tensor(state, dtype=tf.float32)
-        state = tf.reshape(state, [1, 1, 4])
+        state = tf.reshape(state, [1, 4])
 
         return np.argmax(self.model.predict(state, verbose=0)[0])
     
+    def boltzmannAction(self, state):
+        raise NotImplementedError
+    
+    def ucbAction(self, state):
+        raise NotImplementedError
+
+
     def epsilonAnneal(self):
 
-        if self.epsilon > 0.1:
-            self.epsilon *= 0.95
+        if self.epsilon > 0.01:
+            self.epsilon *= 0.995
     
     def remember(self, state, action, reward, nextState, done):
 
         if len(self.memory) >= self.memory.maxlen:
             self.memory.popleft()
         
-        self.memory.append({ 'currentState': state, 'action': action, 'reward': reward, 'nextState': nextState, 'done': done })
+        self.memory.append({'currentState': state, 'action': action, 'reward': reward, 'nextState': nextState, 'done': done})
 
     def replay(self):
         
@@ -59,77 +91,84 @@ class DeepQLearningAgent:
             return
 
         batch = np.random.choice(self.memory, self.batchSize)
+
+        states = np.array([item['currentState'] for item in batch])
+        actions = np.array([item['action'] for item in batch])
+        rewards = np.array([item['reward'] for item in batch])
+        nextStates = np.array([item['nextState'] for item in batch])
+        dones = np.array([item['done'] for item in batch])
+
+        target_f = self.model.predict(states, verbose=0)
+        target = rewards
         
+        notDones = np.logical_not(dones)
+        target[notDones] += self.gamma * np.amax(self.model.predict(nextStates[notDones], verbose=0), axis=1)
+        
+        target_f[np.arange(self.batchSize), actions] = target
 
-        for item in batch:
-
-            state = item['currentState']
-            action = item['action']
-            reward = item['reward']
-            nextState = item['nextState']
-            done = item['done']
-
-            state = tf.convert_to_tensor(state, dtype=tf.float32)
-            state = tf.reshape(state, [1, 1, 4])
-
-            nextState = tf.convert_to_tensor(state, dtype=tf.float32)
-            nextState = tf.reshape(nextState, [1, 1, 4])
-
-            target_f = self.model.predict(state, verbose=0)
-            target = reward
-
-            if not done:
-
-                target = reward + self.gamma * np.amax(self.model.predict(nextState, verbose=0)[0])
+        self.model.fit(states, target_f, epochs=1, verbose=0)
 
 
-            print(target_f)
-            target_f[0][0][action] = target
+def run(args: dict[str, any]) -> None:
 
-            self.model.fit(state, target_f, epochs=1, verbose=0)
+    V, D = args['verbose'], args['debug']
 
-def main():
+    global printV, printD
+    printV, printD = PrintIfVerbose(V), PrintIfDebug(D)
 
-    env = gym.make('CartPole-v1', render_mode='human')
+    explorationStrategy = args['explorationStrategy']
+    alpha, gamma, explorationValue = args['alpha'], args['gamma'], args['explorationValue']
+    batchSize, memorySize = args['batchSize'], args['memorySize']
 
-    StateSize = env.observation_space.shape[0]
-    ActionSize = env.action_space.n
+    renderMode = 'human' if False else 'none'
 
-    episodes = 20
-    maxIterations = 500 #max of cartpole
+    env = gym.make('CartPole-v1', render_mode=renderMode)
+
+    actionSpace = env.action_space.n
+    observationSpace = env.observation_space.shape[0]
 
     scores = []
 
-    Agent = DeepQLearningAgent(StateSize, ActionSize)
+    agent = DeepQLearningAgent(
+        explorationStrategy, alpha, gamma, explorationValue, batchSize, memorySize, actionSpace, observationSpace
+    )
 
-    for i in range(episodes):
+    numEpisodes = args['numEpisodes']
+    episodeLength = args['episodeLength']
+
+    for i in prog(range(numEpisodes), V, 'Training'):
 
         state, _ = env.reset()
         state = np.array(state)
 
-        for j in range(maxIterations):
+        for j in range(episodeLength):
 
-            env.render()
 
-            action = Agent.epsilonGreedyAction(state)
+            ## TODO: Add render flag
+            # if V:
+            #     env.render()
 
-            nextState, reward, done, _, __ = env.step(action)
+            action = agent.epsilonGreedyAction(state)
+
+            nextState, reward, done, timedOut, _ = env.step(action)
 
             nextState = np.array(nextState).astype(np.float32)
 
-            Agent.remember(state, action, reward, nextState, done)
+            agent.remember(state, action, reward, nextState, done)
 
             state = nextState
 
-            if done:
-                print("Episode: {}/{}, score: {}, e: {:.2}".format(i, episodes, j, Agent.epsilon))
+            if done or timedOut:
+                
+                # printV("Episode: {}/{}, score: {}, e: {:.2}".format(i, episodes, j, agent.epsilon))
                 scores.append(j)
-                Agent.epsilonAnneal()
+                agent.epsilonAnneal()
                 break
 
-        Agent.replay()
+        agent.replay()
 
-    print(scores)
+    printV(scores)
+
 
 if __name__ == "__main__":
-    main()
+    run()
