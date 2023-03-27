@@ -67,11 +67,28 @@ class DeepQLearningAgent:
         return np.argmax(self.model.predict(state, verbose=0)[0])
     
     def boltzmannAction(self, state):
-        raise NotImplementedError
+        #boltzmann action selection
+
+        state = tf.convert_to_tensor(state, dtype=tf.float32)
+        state = tf.reshape(state, [1, 4])
+
+        actionProbs = self.model.predict(state, verbose=0)[0]
+        actionProbs = np.exp(actionProbs / self.tau)
+        actionProbs /= np.sum(actionProbs)
+
+        return np.random.choice(np.arange(0, 2), p=actionProbs)
     
     def ucbAction(self, state):
-        raise NotImplementedError
 
+        #upper confidence bound action selection
+
+        state = tf.convert_to_tensor(state, dtype=tf.float32)
+        state = tf.reshape(state, [1, 4])
+
+        actionValues = self.model.predict(state, verbose=0)[0]
+        actionValues += self.zeta * np.sqrt(np.log(self.zeta) / (self.zeta + 1))
+
+        return np.argmax(actionValues)
 
     def epsilonAnneal(self):
 
