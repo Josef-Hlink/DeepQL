@@ -67,7 +67,6 @@ class DeepQLearningAgent:
         return np.argmax(self.model.predict(state, verbose=0)[0])
     
     def boltzmannAction(self, state):
-        #boltzmann action selection
 
         state = tf.convert_to_tensor(state, dtype=tf.float32)
         state = tf.reshape(state, [1, 4])
@@ -79,8 +78,6 @@ class DeepQLearningAgent:
         return np.random.choice(np.arange(0, 2), p=actionProbs)
     
     def ucbAction(self, state):
-
-        #upper confidence bound action selection
 
         state = tf.convert_to_tensor(state, dtype=tf.float32)
         state = tf.reshape(state, [1, 4])
