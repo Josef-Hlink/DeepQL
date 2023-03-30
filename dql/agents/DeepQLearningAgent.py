@@ -19,7 +19,6 @@ class DeepQLearningAgent:
         actionSpace: int, stateSpace: int
     ) -> None:
 
-        # TODO implement bm and ucb
         self.takeAction: function = {
             'e-greedy': self.epsilonGreedyAction,
             'boltzmann': self.boltzmannAction,
@@ -88,10 +87,18 @@ class DeepQLearningAgent:
 
         return np.argmax(actionValues)
 
-    def epsilonAnneal(self):
+    def anneal(self):
 
-        if self.epsilon > 0.01:
-            self.epsilon *= 0.995
+
+        if self.explorationStrategy == 'e-greedy':
+            if self.epsilon > 0.01:
+                self.epsilon *= 0.995
+        elif self.explorationStrategy == 'boltzmann':
+            if self.tau > 0.01:
+                self.tau *= 0.995
+        elif self.explorationStrategy == 'ucb':
+            if self.zeta > 0.01:
+                self.zeta *= 0.995
     
     def remember(self, state, action, reward, nextState, done):
 
@@ -151,6 +158,8 @@ def run(args: dict[str, any]) -> None:
     numEpisodes = args['numEpisodes']
     episodeLength = args['episodeLength']
 
+    env.reset()
+
     for i in prog(range(numEpisodes), V, 'Training'):
 
         state, _ = env.reset()
@@ -176,15 +185,14 @@ def run(args: dict[str, any]) -> None:
 
             agent.remember(state, action, reward, nextState, done)
 
-            state = nextState
-
             if done or timedOut:
-                
-                # printV("Episode: {}/{}, score: {}, e: {:.2}".format(i, episodes, j, agent.epsilon))
+
                 scores.append(j)
-                if explorationStrategy == 'e-greedy':
-                    agent.epsilonAnneal()
+                agent.anneal()
+                #env.reset()
                 break
+
+            state = nextState
 
         agent.replay()
 
