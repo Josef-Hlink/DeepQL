@@ -84,7 +84,7 @@ class DeepQLearningAgent:
         state = tf.reshape(state, [1, 4])
 
         actionValues = self.model.predict(state, verbose=0)[0]
-        actionValues += self.zeta * np.sqrt(np.log(self.zeta) / (self.zeta + 1))
+        actionValues = actionValues + np.sqrt(np.log(self.zeta) / self.zeta + 1)
 
         return np.argmax(actionValues)
 
