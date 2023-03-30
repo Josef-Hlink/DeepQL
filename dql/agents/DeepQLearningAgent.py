@@ -72,8 +72,9 @@ class DeepQLearningAgent:
         state = tf.reshape(state, [1, 4])
 
         actionProbs = self.model.predict(state, verbose=0)[0]
-        actionProbs = np.exp(actionProbs / self.tau)
-        actionProbs /= np.sum(actionProbs)
+        actionProbs = actionProbs / self.tau
+        actionProbs = actionProbs - np.max(actionProbs)
+        actionProbs = np.exp(actionProbs)/np.sum(np.exp(actionProbs))
 
         return np.random.choice(np.arange(0, 2), p=actionProbs)
     
@@ -162,7 +163,12 @@ def run(args: dict[str, any]) -> None:
             # if V:
             #     env.render()
 
-            action = agent.epsilonGreedyAction(state)
+            if explorationStrategy == 'e-greedy':
+                action = agent.epsilonGreedyAction(state)
+            elif explorationStrategy == 'boltzmann':
+                action = agent.boltzmannAction(state)
+            elif explorationStrategy == 'ucb':
+                action = agent.ucbAction(state)
 
             nextState, reward, done, timedOut, _ = env.step(action)
 
@@ -176,7 +182,8 @@ def run(args: dict[str, any]) -> None:
                 
                 # printV("Episode: {}/{}, score: {}, e: {:.2}".format(i, episodes, j, agent.epsilon))
                 scores.append(j)
-                agent.epsilonAnneal()
+                if explorationStrategy == 'e-greedy':
+                    agent.epsilonAnneal()
                 break
 
         agent.replay()
