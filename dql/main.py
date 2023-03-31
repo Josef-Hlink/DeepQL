@@ -4,7 +4,7 @@ import argparse
 
 from dql.utils.parsewrapper import ParseWrapper
 from dql.utils.helpers import fixDirectories, PrintIfVerbose
-from dql.agent import BaseAgent, ReplayAgent
+from dql.agent import BaseAgent, ReplayAgent, TargetAgent
 
 import gym
 
@@ -33,11 +33,26 @@ def main():
     #     V = V, D = D
     # )
 
-    # baseScores = baseAgent.train(env, args['numEpisodes'], env.spec.max_episode_steps, V, D)
+    # baseScores = baseAgent.train(env, args['numEpisodes'], env.spec.max_episode_steps, V)
     # printV(f'Base scores: {baseScores}')
 
 
-    replayAgent = ReplayAgent(
+    # replayAgent = ReplayAgent(
+    #     explorationStrategy = args['explorationStrategy'],
+    #     explorationValue = args['explorationValue'],
+    #     alpha = args['alpha'], gamma = args['gamma'],
+    #     annealingTemperature = args['annealingTemperature'],
+    #     actionSpace = env.action_space.n,
+    #     stateSpace = env.observation_space.shape[0],
+    #     V = V, D = D,
+    #     batchSize = args['batchSize'], memorySize = args['memorySize']
+    # )
+
+    # replayScores = replayAgent.train(env, args['numEpisodes'], env.spec.max_episode_steps, V)
+    # printV(f'Replay scores: {replayScores}')
+    # printV(f'left: {replayAgent.counts[0]}, right: {replayAgent.counts[1]}')
+
+    targetAgent = TargetAgent(
         explorationStrategy = args['explorationStrategy'],
         explorationValue = args['explorationValue'],
         alpha = args['alpha'], gamma = args['gamma'],
@@ -45,11 +60,12 @@ def main():
         actionSpace = env.action_space.n,
         stateSpace = env.observation_space.shape[0],
         V = V, D = D,
-        batchSize = args['batchSize'], memorySize = args['memorySize']
+        updateFrequency = 10
     )
 
-    replayScores = replayAgent.train(env, args['numEpisodes'], env.spec.max_episode_steps, V, D)
-    printV(f'Replay scores: {replayScores}')
+    targetScores = targetAgent.train(env, args['numEpisodes'], env.spec.max_episode_steps, V)
+    printV(f'Target scores: {targetScores}')
+    printV(f'left: {targetAgent.counts[0]}, right: {targetAgent.counts[1]}')
 
 
 if __name__ == '__main__':

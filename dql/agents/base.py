@@ -3,7 +3,7 @@ from dql.utils.helpers import PrintIfVerbose, PrintIfDebug, prog
 import numpy as np
 import gym
 from keras.models import Sequential
-from keras.layers import Dense
+from keras.layers import Dense, Dropout
 from keras.optimizers import Adam
 
 
@@ -41,8 +41,16 @@ class BaseAgent:
         model = Sequential()
         model.add(Dense(64, input_shape=(self.stateSpace,), activation='relu'))
         model.add(Dense(64, activation='relu'))
+        # model.add(Dropout(0.2))
         model.add(Dense(64, activation='relu'))
         model.add(Dense(self.actionSpace, activation='linear'))
+
+        # set random weights initialization to He initialization
+        for layer in model.layers:
+            weights = layer.get_weights()
+            if not weights: continue
+            weights[0] = np.random.randn(*weights[0].shape) * np.sqrt(2 / weights[0].shape[0])
+            layer.set_weights(weights)
 
         model.compile(loss='mse', optimizer=Adam(learning_rate=self.alpha))
         return model
@@ -87,10 +95,7 @@ class BaseAgent:
         state = np.expand_dims(state, axis=0)
         self.model.fit(state, targetF, epochs=1, verbose=0)
     
-    def train(self, env: gym.Env, numEpisodes: int, episodeLength: int, V: bool, D: bool) -> list:
-
-        global printV, printD
-        printV, printD = PrintIfVerbose(V), PrintIfDebug(D)
+    def train(self, env: gym.Env, numEpisodes: int, episodeLength: int, V: bool) -> list[int]:
 
         scores = []
 

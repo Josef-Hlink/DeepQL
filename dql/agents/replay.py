@@ -20,6 +20,9 @@ class ReplayAgent(BaseAgent):
             explorationStrategy, alpha, gamma, annealingTemperature, explorationValue, actionSpace, stateSpace, V, D
         )
 
+        global printV, printD
+        printV, printD = PrintIfVerbose(V), PrintIfDebug(D)
+
         self.batchSize = batchSize
         self.maxMemorySize = memorySize
         self.memory = deque(maxlen=memorySize)
@@ -55,10 +58,7 @@ class ReplayAgent(BaseAgent):
         self.model.fit(states, target_f, epochs=1, verbose=0)
 
 
-    def train(self, env: Env, numEpisodes: int, episodeLength: int, V: bool, D: bool) -> list[int]:
-
-        global printV, printD
-        printV, printD = PrintIfVerbose(V), PrintIfDebug(D)
+    def train(self, env: Env, numEpisodes: int, episodeLength: int, V: bool) -> list[int]:
 
         scores = []
 
