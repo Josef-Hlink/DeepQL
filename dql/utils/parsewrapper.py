@@ -3,8 +3,8 @@
 from argparse import ArgumentParser
 from datetime import datetime
 
-from .namespaces import UC
-from .minis import bold
+from dql.utils.namespaces import UC
+from dql.utils.minis import bold
 
 
 class ParseWrapper:

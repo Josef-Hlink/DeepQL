@@ -4,8 +4,8 @@ from typing import Optional
 from time import perf_counter
 from datetime import datetime
 
-from .namespaces import UC
-from .minis import bold, formatRuntime
+from dql.utils.namespaces import UC
+from dql.utils.minis import bold, formatRuntime
 
 
 class ProgressBar:

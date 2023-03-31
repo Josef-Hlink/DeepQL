@@ -5,9 +5,9 @@ from typing import Iterator, Iterable, Optional
 from time import perf_counter
 from datetime import datetime
 
-from .namespaces import P, UC
-from .minis import bold, formatRuntime
-from .progressbar import ProgressBar
+from dql.utils.namespaces import P, UC
+from dql.utils.minis import bold, formatRuntime
+from dql.utils.progressbar import ProgressBar
 
 
 def fixDirectories() -> None:
