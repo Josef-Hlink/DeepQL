@@ -29,7 +29,7 @@ class ReplayAgent(BaseAgent):
         
         self.memory.append({'currentState': state, 'action': action, 'reward': reward, 'nextState': nextState, 'done': done})
 
-    def replay(self):
+    def learn(self):
         
         if len(self.memory) < self.batchSize:
             return
@@ -78,7 +78,7 @@ class ReplayAgent(BaseAgent):
 
                 state = nextState
 
-            self.replay()
+            self.learn()
 
         env.close()
 

@@ -60,9 +60,9 @@ class ParseWrapper:
             print('Experiment will be ran with the following parameters:')
             for arg, value in self.args.items():
                 if self.defaults[arg] != value:
-                    print(f'{bold(arg):>27} {UC.vd} {value}')
+                    print(f'{bold(arg):>28} {UC.vd} {value}')
                 else:
-                    print(f'{arg:>19} {UC.vd} {value}')
+                    print(f'{arg:>20} {UC.vd} {value}')
             print(UC.hd * 80)
         return self.args
 

@@ -34,9 +34,11 @@ class BaseAgent:
     def createModel(self) -> Sequential:
         """ Creates and compiles a basic neural network. """
         model = Sequential()
-        model.add(Dense(24, input_shape=(self.stateSpace,), activation='relu'))
-        model.add(Dense(24, activation='relu'))
+        model.add(Dense(64, input_shape=(self.stateSpace,), activation='relu'))
+        model.add(Dense(64, activation='relu'))
+        model.add(Dense(64, activation='relu'))
         model.add(Dense(self.actionSpace, activation='linear'))
+
         model.compile(loss='mse', optimizer=Adam(learning_rate=self.alpha))
         return model
 
@@ -70,10 +72,10 @@ class BaseAgent:
 
     def ucbAction(self, state) -> int:
 
-        actionProbs = self.model.predict(self.model.predict(np.expand_dims(state, axis=0)), verbose=0)[0]
-        actionProbs = actionProbs / self.tau
-        actionProbs = actionProbs - np.max(actionProbs)
-        actionProbs = np.exp(actionProbs)/np.sum(np.exp(actionProbs))
+        actionValues = self.model.predict(np.expand_dims(state, axis=0), verbose=0)[0]
+        actionValues = actionValues + np.sqrt(np.log(self.zeta) / self.zeta + 1)
+
+        return np.argmax(actionValues)
 
     def learn(self, state, action, reward, nextState, done) -> None:
         
@@ -106,9 +108,8 @@ class BaseAgent:
                     scores.append(j)
                     break
 
+                self.learn(state, action, reward, nextState, done)
                 state = nextState
-
-            self.learn(state, action, reward, nextState, done)
 
         env.close()
         return scores

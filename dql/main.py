@@ -27,6 +27,7 @@ def main():
         explorationValue = args['explorationValue'],
         alpha = args['alpha'],
         gamma = args['gamma'],
+        annealingTemperature = args['annealingTemperature'],
         actionSpace = env.action_space.n,
         stateSpace = env.observation_space.shape[0]
     )
@@ -40,6 +41,7 @@ def main():
         explorationValue = args['explorationValue'],
         alpha = args['alpha'],
         gamma = args['gamma'],
+        annealingTemperature = args['annealingTemperature'],
         actionSpace = env.action_space.n,
         stateSpace = env.observation_space.shape[0],
         batchSize = args['batchSize'],
