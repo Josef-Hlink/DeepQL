@@ -19,33 +19,33 @@ def main():
     V, D = args['verbose'], args['debug']
     printV = PrintIfVerbose(V)
 
-    renderMode = 'human' if False else 'none'
+    renderMode = 'human' if False else 'rgb_array'
     env = gym.make('CartPole-v1', render_mode=renderMode)
 
-    baseAgent = BaseAgent(
-        explorationStrategy = args['explorationStrategy'],
-        explorationValue = args['explorationValue'],
-        alpha = args['alpha'],
-        gamma = args['gamma'],
-        annealingTemperature = args['annealingTemperature'],
-        actionSpace = env.action_space.n,
-        stateSpace = env.observation_space.shape[0]
-    )
+    # baseAgent = BaseAgent(
+    #     explorationStrategy = args['explorationStrategy'],
+    #     explorationValue = args['explorationValue'],
+    #     alpha = args['alpha'],
+    #     gamma = args['gamma'],
+    #     annealingTemperature = args['annealingTemperature'],
+    #     actionSpace = env.action_space.n,
+    #     stateSpace = env.observation_space.shape[0],
+    #     V = V, D = D
+    # )
 
-    baseScores = baseAgent.train(env, args['numEpisodes'], env.spec.max_episode_steps, V, D)
-    printV(f'Base scores: {baseScores}')
+    # baseScores = baseAgent.train(env, args['numEpisodes'], env.spec.max_episode_steps, V, D)
+    # printV(f'Base scores: {baseScores}')
 
 
     replayAgent = ReplayAgent(
         explorationStrategy = args['explorationStrategy'],
         explorationValue = args['explorationValue'],
-        alpha = args['alpha'],
-        gamma = args['gamma'],
+        alpha = args['alpha'], gamma = args['gamma'],
         annealingTemperature = args['annealingTemperature'],
         actionSpace = env.action_space.n,
         stateSpace = env.observation_space.shape[0],
-        batchSize = args['batchSize'],
-        memorySize = args['memorySize']
+        V = V, D = D,
+        batchSize = args['batchSize'], memorySize = args['memorySize']
     )
 
     replayScores = replayAgent.train(env, args['numEpisodes'], env.spec.max_episode_steps, V, D)

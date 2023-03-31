@@ -70,7 +70,7 @@ class ParseWrapper:
     def resolveDefaultNones(args: dict[str, any]) -> dict[str, any]:
         """ Resolves default values for exploration value and run ID. """
         resolvedArgs = args.copy()
-        defaultExplorationValues = {'e-greedy': 0.1, 'boltzmann': 1.0, 'ucb': 1.0}
+        defaultExplorationValues = {'e-greedy': 0.1, 'boltzmann': 1.0, 'ucb': 2.0}
         if args['explorationValue'] is None:
             resolvedArgs['explorationValue'] = defaultExplorationValues[args['explorationStrategy']]
         if args['runID'] is None:

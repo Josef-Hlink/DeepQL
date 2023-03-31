@@ -13,7 +13,7 @@ class BaseAgent:
     def __init__(self,
         explorationStrategy: str, explorationValue: float,
         alpha: float, gamma: float, annealingTemperature: float,
-        actionSpace: int, stateSpace: int
+        actionSpace: int, stateSpace: int, V: bool, D: bool
     ) -> None:
 
         self.getAction: function = {
@@ -29,7 +29,12 @@ class BaseAgent:
         self.annealTemp = annealingTemperature
         self.actionSpace = actionSpace
         self.stateSpace = stateSpace
+        
+        global printV, printD
+        printV, printD = PrintIfVerbose(V), PrintIfDebug(D)
+        
         self.model = self.createModel()
+        self.counts = np.zeros(self.actionSpace)
 
     def createModel(self) -> Sequential:
         """ Creates and compiles a basic neural network. """
@@ -53,29 +58,25 @@ class BaseAgent:
 
     def anneal(self):
 
-        self.eV = max(0.01, self.eV * self.annealTemp)
+        if self.zeta is None: self.eV = max(0.01, self.eV * self.annealTemp)
 
     def epsilonGreedyAction(self, state) -> int:
-        
+
         if np.random.rand() < self.epsilon: return np.random.randint(0, 2)
-        printD(self.model.predict(np.expand_dims(state, axis=0), verbose=0)[0])
         return np.argmax(self.model.predict(np.expand_dims(state, axis=0), verbose=0)[0])
     
     def boltzmannAction(self, state) -> int:
 
-        actionProbs = self.model.predict(self.model.predict(np.expand_dims(state, axis=0)), verbose=0)[0]
-        actionProbs = actionProbs / self.tau
-        actionProbs = actionProbs - np.max(actionProbs)
-        actionProbs = np.exp(actionProbs)/np.sum(np.exp(actionProbs))
-
-        return np.random.choice(np.arange(0, 2), p=actionProbs)
+        Q = self.model.predict(np.expand_dims(state, axis=0), verbose=0)[0]
+        Q /= self.tau; Q -= np.max(Q)
+        return np.random.choice(self.actionSpace, p=np.exp(Q) / np.sum(np.exp(Q)))
 
     def ucbAction(self, state) -> int:
 
-        actionValues = self.model.predict(np.expand_dims(state, axis=0), verbose=0)[0]
-        actionValues = actionValues + np.sqrt(np.log(self.zeta) / self.zeta + 1)
-
-        return np.argmax(actionValues)
+        Q = self.model.predict(np.expand_dims(state, axis=0), verbose=0)[0]
+        Q += np.sqrt(self.zeta * np.log(np.sum(self.counts)) / (self.counts+0.001))
+        printD(f'Q: {Q}, t: {np.sum(self.counts)}, counts: {self.counts}')
+        return np.argmax(Q)
 
     def learn(self, state, action, reward, nextState, done) -> None:
         
@@ -93,7 +94,6 @@ class BaseAgent:
 
         scores = []
 
-
         for i in prog(range(numEpisodes), V, f'Training {self.__class__.__name__}'):
 
             state, _ = env.reset()
@@ -102,6 +102,7 @@ class BaseAgent:
             for j in range(episodeLength):
                 
                 action = self.getAction(state)
+                self.counts[action] += 1
                 nextState, reward, done, timedOut, _ = env.step(action)
 
                 if done or timedOut:
@@ -110,6 +111,8 @@ class BaseAgent:
 
                 self.learn(state, action, reward, nextState, done)
                 state = nextState
+
+            self.anneal()
 
         env.close()
         return scores
