@@ -74,6 +74,15 @@ class BaseAgent:
         actionProbs = actionProbs / self.tau
         actionProbs = actionProbs - np.max(actionProbs)
         actionProbs = np.exp(actionProbs)/np.sum(np.exp(actionProbs))
+
+    def learn(self, state, action, reward, nextState, done) -> None:
+        
+        target = reward
+        if not done: target = reward + self.gamma * np.amax(self.model.predict(np.expand_dims(nextState, axis=0), verbose=0)[0])
+        targetF = self.model.predict(np.expand_dims(state, axis=0), verbose=0)
+        targetF[0][action] = target
+        state = np.expand_dims(state, axis=0)
+        self.model.fit(state, targetF, epochs=1, verbose=0)
     
     def train(self, env: gym.Env, numEpisodes: int, episodeLength: int, V: bool, D: bool) -> list:
 
@@ -89,8 +98,17 @@ class BaseAgent:
             state = np.array(state)
 
             for j in range(episodeLength):
+                
+                action = self.getAction(state)
+                nextState, reward, done, timedOut, _ = env.step(action)
 
-                # TODO: Implement model fitting
-                ...
+                if done or timedOut:
+                    scores.append(j)
+                    break
 
+                state = nextState
+
+            self.learn(state, action, reward, nextState, done)
+
+        env.close()
         return scores
