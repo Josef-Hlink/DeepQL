@@ -4,10 +4,8 @@ from dql.utils.helpers import PrintIfVerbose, PrintIfDebug, prog
 
 import numpy as np
 import gym
-import tensorflow as tf
-from tensorflow import keras
 from keras.models import Sequential
-from keras.layers import Dense, Input, Flatten
+from keras.layers import Dense
 from keras.optimizers import Adam
 
 class DeepQLearningAgent:
@@ -19,16 +17,16 @@ class DeepQLearningAgent:
         actionSpace: int, stateSpace: int
     ) -> None:
 
-        self.takeAction: function = {
+        self.getAction: function = {
             'e-greedy': self.epsilonGreedyAction,
             'boltzmann': self.boltzmannAction,
             'ucb': self.ucbAction
         }[explorationStrategy]
 
-        self.explorationStrategy = explorationStrategy
+        self.eS = explorationStrategy
+        self.eV = explorationValue
         self.alpha = alpha
         self.gamma = gamma
-        self.explorationValue = explorationValue
         self.batchSize = batchSize
         self.maxMemorySize = memorySize
         self.actionSpace = actionSpace
@@ -36,7 +34,6 @@ class DeepQLearningAgent:
 
         self.memory = deque(maxlen=memorySize)
         self._initializeModel()
-        self._setExplorationValues()
 
 
     def _initializeModel(self) -> None:
@@ -48,57 +45,39 @@ class DeepQLearningAgent:
 
         self.model.compile(loss='mse', optimizer=Adam(learning_rate=self.alpha))
 
-    def _setExplorationValues(self) -> None:
-        self.epsilon = self.explorationValue if self.explorationStrategy == 'e-greedy' else None
-        self.tau = self.explorationValue if self.explorationStrategy == 'boltzmann' else None
-        self.zeta = self.explorationValue if self.explorationStrategy == 'ucb' else None
-        return
-
-    def epsilonGreedyAction(self, state):
-
-        if np.random.rand() < self.epsilon:
-            
-            return np.random.randint(0, 2)
+    def epsilonGreedyAction(self, state) -> int:
         
-        state = tf.convert_to_tensor(state, dtype=tf.float32)
-        state = tf.reshape(state, [1, 4])
-
-        return np.argmax(self.model.predict(state, verbose=0)[0])
+        if np.random.rand() < self.epsilon: return np.random.randint(0, 2)
+        return np.argmax(self.model.predict(np.expand_dims(state, axis=0), verbose=0)[0])
     
-    def boltzmannAction(self, state):
+    def boltzmannAction(self, state) -> int:
 
-        state = tf.convert_to_tensor(state, dtype=tf.float32)
-        state = tf.reshape(state, [1, 4])
-
-        actionProbs = self.model.predict(state, verbose=0)[0]
+        actionProbs = self.model.predict(self.model.predict(np.expand_dims(state, axis=0)), verbose=0)[0]
         actionProbs = actionProbs / self.tau
         actionProbs = actionProbs - np.max(actionProbs)
         actionProbs = np.exp(actionProbs)/np.sum(np.exp(actionProbs))
 
         return np.random.choice(np.arange(0, 2), p=actionProbs)
     
-    def ucbAction(self, state):
+    def ucbAction(self, state) -> int:
 
-        state = tf.convert_to_tensor(state, dtype=tf.float32)
-        state = tf.reshape(state, [1, 4])
-
-        actionValues = self.model.predict(state, verbose=0)[0]
+        actionValues = self.model.predict(self.model.predict(np.expand_dims(state, axis=0)), verbose=0)[0]
         actionValues = actionValues + np.sqrt(np.log(self.zeta) / self.zeta + 1)
 
         return np.argmax(actionValues)
 
+    @property
+    def epsilon(self) -> float: return self.eV if self.eS == 'e-greedy' else None
+    
+    @property
+    def tau(self) -> float: return self.eV if self.eS == 'boltzmann' else None
+    
+    @property
+    def zeta(self) -> float: return self.eV if self.eS == 'ucb' else None
+
     def anneal(self):
 
-
-        if self.explorationStrategy == 'e-greedy':
-            if self.epsilon > 0.01:
-                self.epsilon *= 0.995
-        elif self.explorationStrategy == 'boltzmann':
-            if self.tau > 0.01:
-                self.tau *= 0.995
-        elif self.explorationStrategy == 'ucb':
-            if self.zeta > 0.01:
-                self.zeta *= 0.995
+        self.eV = max(0.01, self.eV * 0.95)
     
     def remember(self, state, action, reward, nextState, done):
 
@@ -172,12 +151,7 @@ def run(args: dict[str, any]) -> None:
             # if V:
             #     env.render()
 
-            if explorationStrategy == 'e-greedy':
-                action = agent.epsilonGreedyAction(state)
-            elif explorationStrategy == 'boltzmann':
-                action = agent.boltzmannAction(state)
-            elif explorationStrategy == 'ucb':
-                action = agent.ucbAction(state)
+            action = agent.getAction(state)
 
             nextState, reward, done, timedOut, _ = env.step(action)
 
