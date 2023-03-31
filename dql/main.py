@@ -31,7 +31,7 @@ def main():
         stateSpace = env.observation_space.shape[0]
     )
 
-    baseScores = baseAgent.train(env, args['numEpisodes'], args['episodeLength'], V, D)
+    baseScores = baseAgent.train(env, args['numEpisodes'], env.spec.max_episode_steps, V, D)
     printV(f'Base scores: {baseScores}')
 
 
@@ -46,7 +46,7 @@ def main():
         memorySize = args['memorySize']
     )
 
-    replayScores = replayAgent.train(env, args['numEpisodes'], args['episodeLength'], V, D)
+    replayScores = replayAgent.train(env, args['numEpisodes'], env.spec.max_episode_steps, V, D)
     printV(f'Replay scores: {replayScores}')
 
 

@@ -11,12 +11,12 @@ class ReplayAgent(BaseAgent):
     
     def __init__(self,
         explorationStrategy: str, explorationValue: float,
-        alpha: float, gamma: float,
+        alpha: float, gamma: float, annealingTemperature: float,
         actionSpace: int, stateSpace: int,
         batchSize: int, memorySize: int
     ) -> None:
         
-        super().__init__(explorationStrategy, alpha, gamma, explorationValue, actionSpace, stateSpace)
+        super().__init__(explorationStrategy, alpha, gamma, annealingTemperature, explorationValue, actionSpace, stateSpace)
 
         self.batchSize = batchSize
         self.maxMemorySize = memorySize

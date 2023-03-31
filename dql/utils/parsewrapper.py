@@ -24,9 +24,8 @@ class ParseWrapper:
         parser.add_argument('-g', '--gamma', dest='gamma',
             type=float, default=0.99, help=f'Discount factor ({UC.g})'
         )
-        parser.add_argument('-l', '--episode-length', dest='episodeLength',
-            type=int, default=500, help='Episode length'
-        )
+        parser.add_argument('-t', '--annealing-temperature', dest='annealingTemperature',
+            type=float, default=0.999, help=f'Annealing temperature (t)')
         parser.add_argument('-n', '--n-episodes', dest='numEpisodes',
             type=int, default=100, help='Budget in episodes'
         )
@@ -96,8 +95,8 @@ class ParseWrapper:
             f'Learning rate {UC.a} must be in [0, 1]'
         assert 0 <= self.args['gamma'] <= 1, \
             f'Discount factor {UC.g} must be in [0, 1]'
-        assert 0 < self.args['episodeLength'] <= 500, \
-            'Episode length must be in {1 .. 500}'
+        assert 0 < self.args['annealingTemperature'] <= 1, \
+            f'Annealing temperature t must be in (0, 1]'
         assert 0 < self.args['numEpisodes'] <= 1000, \
             'Number of episodes must be in {1 .. 1000}'
         assert 0 < self.args['numRepetitions'] <= 100, \

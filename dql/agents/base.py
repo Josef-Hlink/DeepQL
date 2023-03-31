@@ -1,5 +1,3 @@
-from collections import deque
-
 from dql.utils.helpers import PrintIfVerbose, PrintIfDebug, prog
 
 import numpy as np
@@ -14,7 +12,7 @@ class BaseAgent:
 
     def __init__(self,
         explorationStrategy: str, explorationValue: float,
-        alpha: float, gamma: float,
+        alpha: float, gamma: float, annealingTemperature: float,
         actionSpace: int, stateSpace: int
     ) -> None:
 
@@ -28,6 +26,7 @@ class BaseAgent:
         self.eV = explorationValue
         self.alpha = alpha
         self.gamma = gamma
+        self.annealTemp = annealingTemperature
         self.actionSpace = actionSpace
         self.stateSpace = stateSpace
         self.model = self.createModel()
@@ -52,11 +51,12 @@ class BaseAgent:
 
     def anneal(self):
 
-        self.eV = max(0.01, self.eV * 0.95)
+        self.eV = max(0.01, self.eV * self.annealTemp)
 
     def epsilonGreedyAction(self, state) -> int:
         
         if np.random.rand() < self.epsilon: return np.random.randint(0, 2)
+        printD(self.model.predict(np.expand_dims(state, axis=0), verbose=0)[0])
         return np.argmax(self.model.predict(np.expand_dims(state, axis=0), verbose=0)[0])
     
     def boltzmannAction(self, state) -> int:
