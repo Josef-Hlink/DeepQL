@@ -12,7 +12,13 @@ class DataManager:
 
     def __init__(self, dataPath: str, runID: str) -> None:
         self.basePath = Path(dataPath) / runID
-        print(self.basePath)
+        if self.basePath.exists():
+            i = 1
+            while True:
+                self.basePath = Path(dataPath) / f'{runID}_{i}'
+                if not self.basePath.exists():
+                    break
+                i += 1
         self.basePath.mkdir(parents=True, exist_ok=True)
         return
     
