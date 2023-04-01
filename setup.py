@@ -15,7 +15,6 @@ install_requires = [
     'gym',
     'pygame',
     'tensorflow; platform_system!="Darwin"',
-    'tensorflow-gpu; platform_system!="Darwin"',
     'tensorflow-macos; platform_system=="Darwin"',
     'tensorflow-metal; platform_system=="Darwin"',
     'pywin32; platform_system=="Windows"'

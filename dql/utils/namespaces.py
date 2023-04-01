@@ -10,14 +10,14 @@ class UC:
     z = '\u03b6'  # zeta
     g = '\u03b3'  # gamma
     a = '\u03b1'  # alpha
-    tl = '\u250c'  # ┌
-    bl = '\u2514'  # └
-    tr = '\u2510'  # ┐
-    br = '\u2518'  # ┘
-    hd = '\u2500'  # ─
-    vd = '\u2502'  # │
-    block = '\u25a0'  # ■
-    empty = '\u25a1'  # □
+    tl = '\u250c'  if os.platform == 'darwin' else '|'  # ┌
+    bl = '\u2514'  if os.platform == 'darwin' else '|'  # └
+    tr = '\u2510'  if os.platform == 'darwin' else '|'  # ┐
+    br = '\u2518'  if os.platform == 'darwin' else '|'  # ┘
+    hd = '\u2500'  if os.platform == 'darwin' else '-'  # ─
+    vd = '\u2502'  if os.platform == 'darwin' else '|'  # │
+    block = '\u25a0'  if os.platform == 'darwin' else '#'  # ■
+    empty = '\u25a1'  if os.platform == 'darwin' else ' '  # □
 
 class LC:
     """ Namespace with a few LaTeX commands for Greek symbols in plots. """

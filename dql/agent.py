@@ -95,7 +95,7 @@ class DQLAgent:
         R = np.zeros(nEpisodes, dtype=np.int16)
         A = np.zeros((nEpisodes, self.actionSpace), dtype=np.int16)
 
-        for ep in prog(range(nEpisodes), V, 'training'):
+        for ep in prog(range(nEpisodes), V, f'training for {nEpisodes} episodes'):
             s, _ = env.reset()
             observations = ObservationSet()
 

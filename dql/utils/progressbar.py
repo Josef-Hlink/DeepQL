@@ -15,7 +15,7 @@ class ProgressBar:
         self.title = title
         self.w = 50
         self.tic = perf_counter()
-        print(f'Starting {bold(self.title)} at {datetime.now().strftime("%H:%M:%S")}')
+        print(f'Started {bold(self.title)} at {datetime.now().strftime("%H:%M:%S")}')
         self.update(0)
     
     def update(self, i: int):

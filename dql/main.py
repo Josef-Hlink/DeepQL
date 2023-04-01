@@ -65,6 +65,8 @@ def main():
     dataManager.saveActions(A)
     dataManager.createSummary(data=args)
 
+    del agent, env, dataManager, R, A
+
     if args.render:
         env = gym.make('CartPole-v1', render_mode='human')
         renderEpisodes(env, f'{P.data}/{args.runID}/behaviour_models/{args.numRepetitions-1}.h5', 10, V)
