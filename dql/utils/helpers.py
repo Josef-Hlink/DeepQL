@@ -32,7 +32,7 @@ def prog(iterable: Iterable, verbose: bool, title: Optional[str] = None) -> Iter
     else:
         title = f' {bold(title)}' if title is not None else ''
         tic = perf_counter()
-        print(f'Starting{bold(title)} at {datetime.now().strftime("%H:%M:%S")}', end='', flush=True)
+        print(f'Started{bold(title)} at {datetime.now().strftime("%H:%M:%S")}', end='', flush=True)
         for item in iterable:
             yield item
         print(f'\rFinished{bold(title)} in {formatRuntime(perf_counter() - tic)}' + ' ' * 10)

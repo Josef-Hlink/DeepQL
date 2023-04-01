@@ -30,6 +30,5 @@ class LC:
 class P:
     """ Namespace with all paths used in the project. """
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')) + os.sep
-    plots  = root + 'plots' + os.sep
-    arrays = root + 'data/arrays' + os.sep
-    models = root + 'data/models' + os.sep
+    plots = root + 'plots' + os.sep
+    data = root + 'data' + os.sep
