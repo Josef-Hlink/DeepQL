@@ -2,6 +2,10 @@
 
 import json
 from pathlib import Path
+from time import perf_counter
+
+from dql.utils.namespaces import P
+from dql.utils.minis import formatRuntime
 
 import numpy as np
 import pandas as pd
@@ -10,16 +14,17 @@ from keras import Sequential
 
 class DataManager:
 
-    def __init__(self, dataPath: str, runID: str) -> None:
-        self.basePath = Path(dataPath) / runID
+    def __init__(self, runID: str) -> None:
+        self.basePath = Path(P.data) / runID
         if self.basePath.exists():
             i = 1
             while True:
-                self.basePath = Path(dataPath) / f'{runID}_{i}'
+                self.basePath = Path(P.data) / f'{runID}_{i}'
                 if not self.basePath.exists():
                     break
                 i += 1
         self.basePath.mkdir(parents=True, exist_ok=True)
+        self.tic = perf_counter()
         return
     
     def saveRewards(self, rewards: np.ndarray) -> None:
@@ -62,6 +67,7 @@ class DataManager:
         if not data.targetNetwork:
             data.pop('targetNetwork')
             data.pop('targetFrequency')
+        data['runtime'] = formatRuntime(perf_counter() - self.tic)
         with open(self.basePath / 'summary.json', 'w') as f:
             json.dump(data, f, indent=2)
         return

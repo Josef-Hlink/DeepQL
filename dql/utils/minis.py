@@ -11,8 +11,10 @@ def formatRuntime(seconds: float) -> str:
     """ Returns a formatted string of the passed runtime in (mm:)ss.fff. """
     if seconds < 60:
         return f'{seconds:.3f} sec'
-    else:
+    elif seconds < 3600:
         return datetime.utcfromtimestamp(seconds).strftime('%M:%S.%f')[:-3] + ' min'
+    else:
+        return datetime.utcfromtimestamp(seconds).strftime('%H:%M:%S.%f')[:-3] + ' hr'
 
 class DotDict(dict):
     """ `dot.notation` access to dictionary attributes. """

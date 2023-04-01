@@ -5,7 +5,7 @@ import argparse
 from dql.agent import DQLAgent, renderEpisodes
 from dql.utils.parsewrapper import ParseWrapper
 from dql.utils.namespaces import P
-from dql.utils.helpers import fixDirectories, PrintIfVerbose
+from dql.utils.helpers import fixDirectories, PrintIfDebug
 from dql.utils.datamanager import DataManager
 
 import numpy as np
@@ -25,7 +25,7 @@ def main():
     tf.random.set_seed(args.seed)
 
     V, D = args.verbose, args.debug
-    printV, printD = PrintIfVerbose(V), PrintIfVerbose(D)
+    printD = PrintIfDebug(D)
     dataManager = DataManager(P.data, args.runID)
 
     env = gym.make('CartPole-v1', render_mode='rgb_array')
@@ -48,7 +48,7 @@ def main():
     A = np.empty((args.numRepetitions, args.numEpisodes, env.action_space.n))
 
     for rep in range(args.numRepetitions):
-        printV(f'Running repetition {rep+1} of {args.numRepetitions}')
+        print(f'Running repetition {rep+1} of {args.numRepetitions}')
         results = agent.train(env, args.numEpisodes, V)
         
         R[rep] = results['rewards']

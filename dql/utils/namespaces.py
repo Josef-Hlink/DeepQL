@@ -1,7 +1,10 @@
 """ Namespaces for constants and paths. """
 
 import os
+from sys import platform
 
+
+mac = platform == 'darwin'
 
 class UC:
     """ Namespace with a few UniCode characters for Greek symbols and ASCII art in stdout. """
@@ -10,14 +13,14 @@ class UC:
     z = '\u03b6'  # zeta
     g = '\u03b3'  # gamma
     a = '\u03b1'  # alpha
-    tl = '\u250c'  if os.platform == 'darwin' else '|'  # ┌
-    bl = '\u2514'  if os.platform == 'darwin' else '|'  # └
-    tr = '\u2510'  if os.platform == 'darwin' else '|'  # ┐
-    br = '\u2518'  if os.platform == 'darwin' else '|'  # ┘
-    hd = '\u2500'  if os.platform == 'darwin' else '-'  # ─
-    vd = '\u2502'  if os.platform == 'darwin' else '|'  # │
-    block = '\u25a0'  if os.platform == 'darwin' else '#'  # ■
-    empty = '\u25a1'  if os.platform == 'darwin' else ' '  # □
+    tl = '\u250c'  if mac else '|'  # ┌
+    bl = '\u2514'  if mac else '|'  # └
+    tr = '\u2510'  if mac else '|'  # ┐
+    br = '\u2518'  if mac else '|'  # ┘
+    hd = '\u2500'  if mac else '-'  # ─
+    vd = '\u2502'  if mac else '|'  # │
+    block = '\u25a0'  if mac else '#'  # ■
+    empty = '\u25a1'  if mac else ' '  # □
 
 class LC:
     """ Namespace with a few LaTeX commands for Greek symbols in plots. """
