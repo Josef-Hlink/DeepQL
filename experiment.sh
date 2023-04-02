@@ -1,6 +1,10 @@
 #!/bin/bash
 
-# with target
+# base
+dql -I base -ne 1000 -nr 5 -V
+
+# memory replay enabled
+dql -MR -I replay -ne 1000 -nr 5 -V
 
 # target network enabled
 dql -TN -I target -ne 1000 -nr 5 -V
