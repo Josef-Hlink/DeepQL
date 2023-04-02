@@ -89,8 +89,8 @@ class DQLAgent:
             - [bool] `V`: whether to print verbose output
         """
 
-        R = np.empty(nEpisodes, dtype=np.int16)
-        A = np.empty((nEpisodes, self.actionSpace), dtype=np.int16)
+        self.R = np.zeros(nEpisodes, dtype=np.int16)
+        self.A = np.zeros((nEpisodes, self.actionSpace), dtype=np.int16)
 
         for ep in prog(range(nEpisodes), V, f'training for {nEpisodes} episodes'):
             s, _ = env.reset()
@@ -99,6 +99,8 @@ class DQLAgent:
             while True:
                 a = self.getAction(s)
                 s_, r, done, timedOut, _ = env.step(a)
+                self.A[ep, a] += 1
+                self.R[ep] += r
                 observation = Observation(s, a, r, s_, done)
                 observations.add(observation)
                 # skipped if not using memory replay
@@ -106,8 +108,7 @@ class DQLAgent:
                 s = s_
 
                 if done or timedOut:
-                    R[ep] = observations.totalReward
-                    A[ep] = (observations.nLeft, observations.nRight)
+                    self.R[ep] = observations.totalReward
                     self.learn(observations)
                     break
 
@@ -116,7 +117,7 @@ class DQLAgent:
             self.replay()
             self.updateTargetModel(ep)
 
-        return {'rewards': R, 'actions': A}
+        return {'rewards': self.R, 'actions': self.A}
 
     def reset(self) -> None:
         """ Resets all relevant agent's member variables. """
@@ -268,8 +269,11 @@ class DQLAgent:
     def _ucbAction(self, state: np.ndarray) -> int:
         """ Returns an action based on the UCB exploration strategy. """
 
+        actionCounts = np.sum(self.A, axis=0)
+        if np.any(actionCounts == 0):
+            return np.argwhere(actionCounts == 0)[0][0]
         Q = self.QBehaviour(state)
-        Q += np.sqrt(self.zeta * np.log(np.sum(self.counts)) / (self.counts+0.001))
+        Q += np.sqrt(self.zeta * np.log(np.sum(self.A)) / np.sum(self.A, axis=0))
         return np.argmax(Q)
 
     def anneal(self):
