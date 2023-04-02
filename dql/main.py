@@ -11,8 +11,6 @@ from dql.utils.datamanager import DataManager
 import numpy as np
 import tensorflow as tf
 import gym
-import psutil
-
 
 def main():
 
@@ -28,7 +26,6 @@ def main():
     V, D = args.verbose, args.debug
     printD = PrintIfDebug(D)
     dataManager = DataManager(args.runID)
-    memoryStart = psutil.virtual_memory().used / 10**9
 
     env = gym.make('CartPole-v1', render_mode='rgb_array')
 
@@ -48,8 +45,6 @@ def main():
     R = np.empty((args.numRepetitions, args.numEpisodes))
     A = np.empty((args.numRepetitions, args.numEpisodes, env.action_space.n))
 
-    memory = np.empty((args.numRepetitions))
-
     for rep in range(args.numRepetitions):
         print(f'Running repetition {rep+1} of {args.numRepetitions}')
         results = agent.train(env, args.numEpisodes, V)
@@ -57,14 +52,15 @@ def main():
         R[rep] = results['rewards']
         A[rep] = results['actions']
         
-        printD(np.mean(results['rewards']))
-        printD(np.sum(results['actions'], axis=0))
+        printD(f'Average reward: {np.mean(results["rewards"])}')
+        printD(f'Action distribution:\n{np.sum(results["actions"], axis=0) / np.sum(results["actions"])}')
+        printD(f'Memory leakage: {agent.memoryLeakage // (1024**2)} MB')
         
         dataManager.saveModel(agent.model, rep+1, 'behaviour')
         if agent.usingTN:
             dataManager.saveModel(agent.targetModel, rep+1, 'target')
 
-        memory[rep] = (psutil.virtual_memory().used / 10**9) - memoryStart
+        agent.reset()
 
     dataManager.saveRewards(R)
     dataManager.saveActions(A)
@@ -76,8 +72,6 @@ def main():
         env = gym.make('CartPole-v1', render_mode='human')
         renderEpisodes(env, f'{P.data}/{args.runID}/behaviour_models/{args.numRepetitions-1}.h5', 10, V)
 
-    print('memory used after each repetition:')
-    print(memory)
 
 
 if __name__ == '__main__':

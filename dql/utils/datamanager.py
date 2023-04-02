@@ -42,7 +42,11 @@ class DataManager:
     def saveActions(self, actions: np.ndarray) -> None:
         """ Saves the actions. """
         normActions = actions / np.sum(actions, axis=2, keepdims=True)
-        self.avgActionBias = np.mean(normActions[:, :, 0])
+        biases = np.empty(actions.shape[0])
+        for i in range(actions.shape[0]):
+            bias = np.mean(normActions[i, :, 0])
+            biases[i] = 1 - bias if bias < .5 else bias
+        self.avgActionBias = np.mean(biases)
         np.save(self.basePath / 'actions.npy', actions)
         return
     

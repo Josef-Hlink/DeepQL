@@ -6,6 +6,7 @@ from functools import partial
 from dql.utils.helpers import prog
 from dql.utils.observations import Observation, ObservationSet
 
+from psutil import Process
 import numpy as np
 import gym
 from tensorflow import convert_to_tensor as toTensor
@@ -51,6 +52,7 @@ class DQLAgent:
 
         self.eS = explorationStrategy
         self.eV = explorationValue
+        self.eVbkp = explorationValue
         self.aR = annealingRate
         self.alpha = alpha
         self.gamma = gamma
@@ -73,6 +75,7 @@ class DQLAgent:
             self.targetModel = self.createModel()
             self.usingTN = True
 
+        self.memoryLeakage = 0  # will be stored as number of bytes
 
         return
 
@@ -113,11 +116,19 @@ class DQLAgent:
             self.replay()
             self.updateTargetModel(ep)
 
-        result = {'rewards': R, 'actions': A}
-        env.close()
-        self.resetModels()
+        return {'rewards': R, 'actions': A}
 
-        return result
+    def reset(self) -> None:
+        """ Resets all relevant agent's member variables. """
+        self.eV = self.eVbkp
+        self.observationBuffer = ObservationSet()
+        self.model = self.createModel()
+        if self.usingMR:
+            self.memory.clear()
+        if self.usingTN:
+            self.targetModel = self.createModel()
+        self.memoryLeakage = 0
+        return
 
     ###########################
     # Model-related functions #
@@ -135,13 +146,6 @@ class DQLAgent:
         model.compile(loss='mse', optimizer=Adam(learning_rate=self.alpha))
         return model
     
-    def resetModels(self) -> None:
-        """ Resets the weights of the agent's model(s). """
-        self.model = self.createModel()
-        if self.usingTN:
-            self.targetModel = self.createModel()
-        return
-    
     def learn(self, observations: ObservationSet) -> None:
         """ Wrapper around the actual learn function to abstract away batch storage. """
         self.observationBuffer += observations
@@ -158,7 +162,10 @@ class DQLAgent:
         target[notDone] += self.gamma * np.amax(self.QTarget(s_), axis=1)[notDone]
         targetF = self.QBehaviour(s)
         targetF[np.arange(len(a)), a] = target
+        mB = Process().memory_info().rss
         self.model.fit(toTensor(s), toTensor(targetF), epochs=1, batch_size=len(observations), verbose=0)
+        mA = Process().memory_info().rss
+        self.memoryLeakage += mA - mB
         return
 
     #################
@@ -182,7 +189,7 @@ class DQLAgent:
             return
         # TODO: use a prioritized replay buffer to prefer sampling from actions that are less explored
         batch = np.random.choice(self.memory, self.batchSize)
-        self.learn(ObservationSet(batch))
+        self._learn(ObservationSet(batch))
         return
 
     ##################
@@ -216,15 +223,28 @@ class DQLAgent:
 
     def _QBehaviour(self, state) -> np.ndarray:
         """ Returns the Q-values based on the behaviour policy for one or more states. """
+        mB = Process().memory_info().rss
         if len(state.shape) == 1:
-            return self.model.predict(toTensor(np.expand_dims(state, axis=0)), verbose=0)[0]
-        return self.model.predict(toTensor(state), verbose=0)
+            res = self.model.predict(toTensor(np.expand_dims(state, axis=0)), verbose=0)[0]
+        else:
+            res = self.model.predict(toTensor(state), verbose=0)
+        mA = Process().memory_info().rss
+        self.memoryLeakage += mA - mB
+        return res
     
     def _QTarget(self, state) -> np.ndarray:
         """ Returns the Q-values based on the target policy for one or more states. """
+        # if len(state.shape) == 1:
+        #     return self.targetModel.predict(toTensor(np.expand_dims(state, axis=0)), verbose=0)[0]
+        # return self.targetModel.predict(toTensor(state), verbose=0)
+        mB = Process().memory_info().rss
         if len(state.shape) == 1:
-            return self.targetModel.predict(toTensor(np.expand_dims(state, axis=0)), verbose=0)[0]
-        return self.targetModel.predict(toTensor(state), verbose=0)
+            res = self.targetModel.predict(toTensor(np.expand_dims(state, axis=0)), verbose=0)[0]
+        else:
+            res = self.targetModel.predict(toTensor(state), verbose=0)
+        mA = Process().memory_info().rss
+        self.memoryLeakage += mA - mB
+        return res
 
     ##########################
     # Exploration strategies #
