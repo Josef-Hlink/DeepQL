@@ -1,8 +1,27 @@
-import tensorflow as tf
-tf.compat.v1.disable_eager_execution()
-with tf.device('/gpu:0'):
-    a = tf.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], shape=[2, 3], name='a')
-    b = tf.constant([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], shape=[3, 2], name='b')
-    c = tf.matmul(a, b)
-with tf.compat.v1.Session() as sess:
-    print (sess.run(c))
+import gc
+
+def dump_garbage(  ):
+    """
+    show us what the garbage is about
+    """
+    # Force collection
+    print("\nGARBAGE:")
+    gc.collect(  )
+
+    print("\nGARBAGE OBJECTS:")
+    for x in gc.garbage:
+        s = str(x)
+        if len(s) > 80: s = s[:77]+'...'
+        print(type(x),"\n  ", s)
+
+if __name__=="__main__":
+    gc.enable(  )
+    # gc.set_debug(gc.DEBUG_LEAK)
+
+    # Make a leak
+    l = []
+    l.append(l)
+    del l
+
+    # show the dirt ;-)
+    dump_garbage(  )

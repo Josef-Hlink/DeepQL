@@ -32,16 +32,18 @@ class ParseWrapper:
         parser.add_argument('-nr', dest='numRepetitions',
             type=int, default=5, help='Number of repetitions'
         )
-        parser.add_argument('-MR', dest='memoryReplay',
-            action='store_true', help='Use memory replay')
         parser.add_argument('-b', dest='batchSize',
             type=int, default=32, help='Batch size'
+        )
+        parser.add_argument('-MR', dest='memoryReplay',
+            action='store_true', help='Use memory replay'
         )
         parser.add_argument('-m', dest='memorySize',
             type=int, default=2000, help='Memory size'
         )
         parser.add_argument('-TN', dest='targetNetwork',
-            action='store_true', help='Use target network')
+            action='store_true', help='Use target network'
+        )
         parser.add_argument('-f', dest='targetFrequency',
             type=int, default=100, help='Target network update frequency'
         )

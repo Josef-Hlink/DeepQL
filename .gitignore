@@ -1,6 +1,7 @@
 # usual python directories
 __pycache__
 venv
+bkpvenv
 dql.egg-info
 dist
 build

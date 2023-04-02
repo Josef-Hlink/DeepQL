@@ -3,11 +3,12 @@
 from collections import deque
 from functools import partial
 
-from dql.utils.helpers import PrintIfVerbose, PrintIfDebug, prog
+from dql.utils.helpers import prog
 from dql.utils.observations import Observation, ObservationSet
 
 import numpy as np
 import gym
+from tensorflow import convert_to_tensor as toTensor
 from keras.models import Sequential, load_model
 from keras.layers import Dense
 from keras.optimizers import Adam
@@ -20,9 +21,9 @@ class DQLAgent:
 
     def __init__(self,
         explorationStrategy: str, explorationValue: float,
-        alpha: float, gamma: float, annealingRate: float,
-        memorySize: int = None, batchSize: int = None, targetUpdateFreq: int = None,
-        actionSpace: int = 2, stateSpace: int = 4, V: bool = False, D: bool = False
+        alpha: float, gamma: float, annealingRate: float, batchSize: int,
+        memorySize: int = None, targetUpdateFreq: int = None,
+        actionSpace: int = 2, stateSpace: int = 4
     ) -> None:
         """
         Initializes a Deep Q-Learning agent.
@@ -33,15 +34,13 @@ class DQLAgent:
             - [float] `alpha`: learning rate for the neural network
             - [float] `gamma`: discount factor for future rewards
             - [float] `annealingRate`: rate at which the exploration parameter is annealed
+            - [int]   `batchSize`: size of the batches used in both memory replay and regular training
             - [int]   `memorySize`: size of the replay memory
-                * if specified, the agent will use memory replay (you will also need to specify `batchSize`)
-            - [int]   `batchSize`: size of the batches used for training in replay phase
+                * if specified, the agent will use memory replay
             - [int]   `targetUpdateFreq`: number of episodes after which the target network is updated
                 * if specified, the agent will be a double DQN agent
             - [int]   `actionSpace`: number of possible actions in the environment
             - [int]   `stateSpace`: number of parameters that represent a state in the environment
-            - [bool]  `V`: whether to print verbose output
-            - [bool]  `D`: whether to print debug output
         """
 
         self.getAction: function = {
@@ -49,15 +48,14 @@ class DQLAgent:
             'boltzmann': self._boltzmannAction,
             'ucb': self._ucbAction
         }[explorationStrategy]
-        
-        global printV, printD
-        printV, printD = PrintIfVerbose(V), PrintIfDebug(D)
 
         self.eS = explorationStrategy
         self.eV = explorationValue
         self.aR = annealingRate
         self.alpha = alpha
         self.gamma = gamma
+        self.batchSize = batchSize
+        self.observationBuffer = ObservationSet()
         self.actionSpace = actionSpace
         self.stateSpace = stateSpace
         
@@ -65,20 +63,16 @@ class DQLAgent:
         self.usingMR = False  # using memory replay
         self.usingTN = False  # using target network
 
-        if memorySize is not None and batchSize is not None:
-            printV(f'Agent will use replay memory of size {memorySize} and batch size {batchSize}.')
+        if memorySize is not None:
             self.memorySize = memorySize
             self.memory = deque(maxlen=self.memorySize)
-            self.batchSize = batchSize
             self.usingMR = True
-        elif memorySize is not None or batchSize is not None:
-            raise ValueError('Both memorySize and batchSize must be specified if one of them is specified.')
 
         if targetUpdateFreq is not None:
-            printV(f'Agent will use target network with update frequency {targetUpdateFreq}.')
             self.targetUpdateFreq = targetUpdateFreq
             self.targetModel = self.createModel()
             self.usingTN = True
+
 
         return
 
@@ -92,8 +86,8 @@ class DQLAgent:
             - [bool] `V`: whether to print verbose output
         """
 
-        R = np.zeros(nEpisodes, dtype=np.int16)
-        A = np.zeros((nEpisodes, self.actionSpace), dtype=np.int16)
+        R = np.empty(nEpisodes, dtype=np.int16)
+        A = np.empty((nEpisodes, self.actionSpace), dtype=np.int16)
 
         for ep in prog(range(nEpisodes), V, f'training for {nEpisodes} episodes'):
             s, _ = env.reset()
@@ -119,10 +113,11 @@ class DQLAgent:
             self.replay()
             self.updateTargetModel(ep)
 
+        result = {'rewards': R, 'actions': A}
         env.close()
-        self.resetModelWeights()
+        self.resetModels()
 
-        return {'rewards': R, 'actions': A}
+        return result
 
     ###########################
     # Model-related functions #
@@ -140,14 +135,22 @@ class DQLAgent:
         model.compile(loss='mse', optimizer=Adam(learning_rate=self.alpha))
         return model
     
-    def resetModelWeights(self) -> None:
+    def resetModels(self) -> None:
         """ Resets the weights of the agent's model(s). """
-        self.model.set_weights(self.createModel().get_weights())
+        self.model = self.createModel()
         if self.usingTN:
-            self.targetModel.set_weights(self.createModel().get_weights())
+            self.targetModel = self.createModel()
         return
     
     def learn(self, observations: ObservationSet) -> None:
+        """ Wrapper around the actual learn function to abstract away batch storage. """
+        self.observationBuffer += observations
+        while len(self.observationBuffer) >= self.batchSize:
+            self._learn(self.observationBuffer[:self.batchSize])
+            self.observationBuffer = self.observationBuffer[self.batchSize:]
+        return
+
+    def _learn(self, observations: ObservationSet) -> None:
         """ Updates the behaviour model's network weights for a given set of observations. """
         s, a, r, s_, done = observations.unpack()
         notDone = np.logical_not(done)
@@ -155,7 +158,7 @@ class DQLAgent:
         target[notDone] += self.gamma * np.amax(self.QTarget(s_), axis=1)[notDone]
         targetF = self.QBehaviour(s)
         targetF[np.arange(len(a)), a] = target
-        self.model.fit(s, targetF, epochs=1, verbose=0)
+        self.model.fit(toTensor(s), toTensor(targetF), epochs=1, batch_size=len(observations), verbose=0)
         return
 
     #################
@@ -214,14 +217,14 @@ class DQLAgent:
     def _QBehaviour(self, state) -> np.ndarray:
         """ Returns the Q-values based on the behaviour policy for one or more states. """
         if len(state.shape) == 1:
-            return self.model.predict(np.expand_dims(state, axis=0), verbose=0)[0]
-        return self.model.predict(state, verbose=0)
+            return self.model.predict(toTensor(np.expand_dims(state, axis=0)), verbose=0)[0]
+        return self.model.predict(toTensor(state), verbose=0)
     
     def _QTarget(self, state) -> np.ndarray:
         """ Returns the Q-values based on the target policy for one or more states. """
         if len(state.shape) == 1:
-            return self.targetModel.predict(np.expand_dims(state, axis=0), verbose=0)[0]
-        return self.targetModel.predict(state, verbose=0)
+            return self.targetModel.predict(toTensor(np.expand_dims(state, axis=0)), verbose=0)[0]
+        return self.targetModel.predict(toTensor(state), verbose=0)
 
     ##########################
     # Exploration strategies #
@@ -233,7 +236,6 @@ class DQLAgent:
         if np.random.rand() < self.epsilon:
             return np.random.randint(0, 2)
         Q = self.QBehaviour(state)
-        printD(f'ε-greedy: Q = {Q}')
         return np.argmax(Q)
     
     def _boltzmannAction(self, state: np.ndarray) -> int:
@@ -241,7 +243,6 @@ class DQLAgent:
 
         Q = self.QBehaviour(state)
         Q /= self.tau; Q -= np.max(Q)
-        printD(f'Boltzmann: Q = {Q}')
         return np.random.choice(self.actionSpace, p=np.exp(Q) / np.sum(np.exp(Q)))
 
     def _ucbAction(self, state: np.ndarray) -> int:
@@ -249,7 +250,6 @@ class DQLAgent:
 
         Q = self.QBehaviour(state)
         Q += np.sqrt(self.zeta * np.log(np.sum(self.counts)) / (self.counts+0.001))
-        printD(f'UCB: Q = {Q}')
         return np.argmax(Q)
 
     def anneal(self):

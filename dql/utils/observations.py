@@ -105,7 +105,10 @@ class ObservationSet:
         return len(self.observations)
     
     def __getitem__(self, index: int) -> Observation:
-        return self.observations[index]
+        return ObservationSet(self.observations[index])
     
     def __iter__(self):
         return iter(self.observations)
+    
+    def __add__(self, other: 'ObservationSet') -> 'ObservationSet':
+        return ObservationSet(self.observations + other.observations)
