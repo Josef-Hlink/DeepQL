@@ -57,7 +57,6 @@ class DataManager:
         if not data.memoryReplay:
             data.pop('memoryReplay')
             data.pop('memorySize')
-            data.pop('batchSize')
         if not data.targetNetwork:
             data.pop('targetNetwork')
             data.pop('targetFrequency')

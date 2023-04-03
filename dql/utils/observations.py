@@ -112,3 +112,7 @@ class ObservationSet:
     
     def __add__(self, other: 'ObservationSet') -> 'ObservationSet':
         return ObservationSet(self.observations + other.observations)
+
+    def __delitem__(self, index: int) -> None:
+        del self.observations[index]
+        return

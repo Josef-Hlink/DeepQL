@@ -152,7 +152,7 @@ class DQLAgent:
         self.observationBuffer += observations
         while len(self.observationBuffer) >= self.batchSize:
             self._learn(self.observationBuffer[:self.batchSize])
-            self.observationBuffer = self.observationBuffer[self.batchSize:]
+            del self.observationBuffer[:self.batchSize]
         return
 
     def _learn(self, observations: ObservationSet) -> None:
@@ -277,7 +277,7 @@ class DQLAgent:
         return np.argmax(Q)
 
     def anneal(self):
-        """ We only anneal ε & τ, for UCB the exploration value (ζ) is fixed. """
+        """ We only anneal for ε or τ; for UCB the exploration value (ζ) is fixed. """
         if self.zeta is None:
             self.eV = max(0.01, self.eV * self.aR)
         return

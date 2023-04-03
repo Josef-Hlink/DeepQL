@@ -7,7 +7,6 @@ dist
 build
 .vscode
 .ipynb_checkpoints
-explore.ipynb
 
 # project specific directories
 docs

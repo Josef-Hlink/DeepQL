@@ -5,14 +5,17 @@ import argparse
 from dql.agent import DQLAgent, renderEpisodes
 from dql.utils.parsewrapper import ParseWrapper
 from dql.utils.namespaces import P
-from dql.utils.helpers import fixDirectories, PrintIfDebug
+from dql.utils.helpers import fixDirectories, PrintIfDebug, getMemoryUsage
 from dql.utils.datamanager import DataManager
 
 import numpy as np
 import tensorflow as tf
 import gym
 
+
 def main():
+
+    before = getMemoryUsage()
 
     fixDirectories()
 
@@ -28,7 +31,6 @@ def main():
     dataManager = DataManager(args.runID)
 
     env = gym.make('CartPole-v1', render_mode='rgb_array')
-
     agent = DQLAgent(
         explorationStrategy = args.explorationStrategy,
         explorationValue = args.explorationValue,
@@ -42,10 +44,11 @@ def main():
         stateSpace = env.observation_space.shape[0]
     )
 
-    R = np.empty((args.numRepetitions, args.numEpisodes))
-    A = np.empty((args.numRepetitions, args.numEpisodes, env.action_space.n))
+    R = np.zeros((args.numRepetitions, args.numEpisodes))
+    A = np.zeros((args.numRepetitions, args.numEpisodes, env.action_space.n))
 
     for rep in range(args.numRepetitions):
+
         print(f'Running repetition {rep+1} of {args.numRepetitions}')
         results = agent.train(env, args.numEpisodes, V)
         
@@ -71,6 +74,12 @@ def main():
     if args.render:
         env = gym.make('CartPole-v1', render_mode='human')
         renderEpisodes(env, f'{P.data}/{args.runID}/behaviour_models/{args.numRepetitions-1}.h5', 10, V)
+
+    after = getMemoryUsage()
+
+    printD(f'RSS before: {before:.2f} MB')
+    printD(f'RSS after: {after:.2f} MB')
+    printD(f'RSS diff: {after - before:.2f} MB')
 
 
 

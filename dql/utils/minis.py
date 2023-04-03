@@ -16,8 +16,22 @@ def formatRuntime(seconds: float) -> str:
     else:
         return datetime.utcfromtimestamp(seconds).strftime('%H:%M:%S.%f')[:-3] + ' hr'
 
+def formattedRuntimeToSeconds(formattedRuntime: str) -> float:
+    """ Returns the passed formated runtime in seconds. """
+    if formattedRuntime[-3:] == 'sec':
+        return float(formattedRuntime[:-3])
+    elif formattedRuntime[-3:] == 'min':
+        min_, sec_ = map(int, formattedRuntime[:-8].split(':'))
+        return min_ * 60 + sec_ + float(formattedRuntime[-7:-4]) / 1000
+    elif formattedRuntime[-2:] == 'hr':
+        hr_, min_, sec_ = map(int, formattedRuntime[:-7].split(':'))
+        return hr_ * 3600 + min_ * 60 + sec_ + float(formattedRuntime[-6:-3]) / 1000
+
 class DotDict(dict):
     """ `dot.notation` access to dictionary attributes. """
     __getattr__ = dict.get
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
+
+    def copy(self):
+        return DotDict(super().copy())

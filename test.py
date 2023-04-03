@@ -1,27 +1,19 @@
-import gc
+import psutil
+import numpy as np
 
-def dump_garbage(  ):
-    """
-    show us what the garbage is about
-    """
-    # Force collection
-    print("\nGARBAGE:")
-    gc.collect(  )
 
-    print("\nGARBAGE OBJECTS:")
-    for x in gc.garbage:
-        s = str(x)
-        if len(s) > 80: s = s[:77]+'...'
-        print(type(x),"\n  ", s)
+def getMemoryUsage():
+    """ Returns the memory usage of the current process in MB. """
+    return psutil.Process().memory_info().rss / (1024**2)
 
-if __name__=="__main__":
-    gc.enable(  )
-    # gc.set_debug(gc.DEBUG_LEAK)
+def test():
+    before = getMemoryUsage()
+    A = np.random.randint(0, 1000000, (1000, 5, 2), dtype=int)
+    print(A.dtype)
+    after = getMemoryUsage()
+    print(f'Before: {before:.2f} MB')
+    print(f'After: {after:.2f} MB')
+    print(f'Difference: {after - before:.2f} MB')
 
-    # Make a leak
-    l = []
-    l.append(l)
-    del l
-
-    # show the dirt ;-)
-    dump_garbage(  )
+if __name__ == '__main__':
+    test()

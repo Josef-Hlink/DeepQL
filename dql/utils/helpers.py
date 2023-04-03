@@ -9,6 +9,8 @@ from dql.utils.namespaces import P, UC
 from dql.utils.minis import bold, formatRuntime
 from dql.utils.progressbar import ProgressBar
 
+import psutil
+
 
 def fixDirectories() -> None:
     """ Creates the necessary directories if they don't exist. """
@@ -33,10 +35,14 @@ def prog(iterable: Iterable, verbose: bool, title: Optional[str] = None) -> Iter
         title = f' {bold(title)}' if title is not None else ''
         tic = perf_counter()
         print(f'Started{bold(title)} at {datetime.now().strftime("%H:%M:%S")}', end='', flush=True)
-        for item in iterable:
-            yield item
+        yield from iterable
         print(f'\rFinished{bold(title)} in {formatRuntime(perf_counter() - tic)}' + ' ' * 10)
     return
+
+
+def getMemoryUsage():
+    """ Returns the memory usage of the current process in MB. """
+    return psutil.Process().memory_info().rss / (1024**2)
 
 
 class PrintIfVerbose:
