@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+from time import perf_counter
 
 from dql.agent import DQLAgent, renderEpisodes
 from dql.utils.parsewrapper import ParseWrapper
@@ -15,7 +16,7 @@ import gym
 
 def main():
 
-    before = getMemoryUsage()
+    rssStart = getMemoryUsage()
 
     fixDirectories()
 
@@ -37,15 +38,18 @@ def main():
         alpha = args.alpha,
         gamma = args.gamma,
         annealingRate = args.annealingRate,
-        actionSpace = env.action_space.n,
-        memorySize = args.memorySize if args.memoryReplay else None,
         batchSize = args.batchSize,
+        replayBufferSize = args.memorySize if args.memoryReplay else None,
         targetUpdateFreq = args.targetFrequency if args.targetNetwork else None,
+        actionSpace = env.action_space.n,
         stateSpace = env.observation_space.shape[0]
     )
 
-    R = np.zeros((args.numRepetitions, args.numEpisodes))
-    A = np.zeros((args.numRepetitions, args.numEpisodes, env.action_space.n))
+    R = np.zeros((args.numRepetitions, args.numEpisodes), dtype=np.int16)
+    A = np.zeros((args.numRepetitions, args.numEpisodes, env.action_space.n), dtype=np.int16)
+    L = []
+
+    tic = perf_counter()
 
     for rep in range(args.numRepetitions):
 
@@ -54,10 +58,10 @@ def main():
         
         R[rep] = results['rewards']
         A[rep] = results['actions']
+        L.append(results['losses'])
         
         printD(f'Average reward: {np.mean(results["rewards"])}')
         printD(f'Action distribution:\n{np.sum(results["actions"], axis=0) / np.sum(results["actions"])}')
-        printD(f'Memory leakage: {agent.memoryLeakage // (1024**2)} MB')
         
         dataManager.saveModel(agent.model, rep+1, 'behaviour')
         if agent.usingTN:
@@ -65,9 +69,14 @@ def main():
 
         agent.reset()
 
+    toc = perf_counter()
+    data = args.copy()
+    data['avgRuntime'] = (toc - tic) / args.numRepetitions
+
     dataManager.saveRewards(R)
     dataManager.saveActions(A)
-    dataManager.createSummary(data=args)
+    dataManager.saveLosses(L)
+    dataManager.createSummary(data)
 
     del agent, env, dataManager, R, A
 
@@ -75,11 +84,11 @@ def main():
         env = gym.make('CartPole-v1', render_mode='human')
         renderEpisodes(env, f'{P.data}/{args.runID}/behaviour_models/{args.numRepetitions-1}.h5', 10, V)
 
-    after = getMemoryUsage()
+    rssEnd = getMemoryUsage()
 
-    printD(f'RSS before: {before:.2f} MB')
-    printD(f'RSS after: {after:.2f} MB')
-    printD(f'RSS diff: {after - before:.2f} MB')
+    printD(f'RSS start: {rssStart:.2f} MB')
+    printD(f'RSS end: {rssEnd:.2f} MB')
+    printD(f'RSS diff: {rssEnd - rssStart:.2f} MB')
 
 
 

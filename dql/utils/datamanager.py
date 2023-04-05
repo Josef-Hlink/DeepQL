@@ -2,10 +2,9 @@
 
 import json
 from pathlib import Path
-from time import perf_counter
 
 from dql.utils.namespaces import P
-from dql.utils.minis import formatRuntime
+from dql.utils.minis import formatRuntime, DotDict
 
 import numpy as np
 from keras import Sequential
@@ -23,7 +22,6 @@ class DataManager:
                     break
                 i += 1
         self.basePath.mkdir(parents=True, exist_ok=True)
-        self.tic = perf_counter()
         return
     
     def saveModel(self, model: Sequential, repetition: int, name: str) -> None:
@@ -50,19 +48,45 @@ class DataManager:
         np.save(self.basePath / 'actions.npy', actions)
         return
     
-    def createSummary(self, data: dict) -> None:
+    def saveLosses(self, losses: list[np.ndarray]) -> None:
+        """ Saves the losses. """
+        maxLen = max([len(l) for l in losses])
+        for i in range(len(losses)):
+            if len(losses[i]) < maxLen:
+                losses[i] = np.pad(losses[i], (0, maxLen - len(losses[i])), 'constant', constant_values=np.nan)
+        losses = np.array(losses)
+        self.avgLoss = float(np.mean(losses))
+        np.save(self.basePath / 'losses.npy', losses)
+        return
+    
+    def createSummary(self, data: DotDict) -> None:
         """ Creates a summary of the run. """
-        data.pop('verbose')
-        data.pop('debug')
-        if not data.memoryReplay:
-            data.pop('memoryReplay')
-            data.pop('memorySize')
-        if not data.targetNetwork:
-            data.pop('targetNetwork')
-            data.pop('targetFrequency')
-        data['runtime'] = formatRuntime(perf_counter() - self.tic)
-        data['avgReward'] = self.avgReward
-        data['avgActionBias'] = self.avgActionBias
+        summary = dict(
+            meta = dict(
+                runID = data.runID,
+                numRepetitions = data.numRepetitions,
+                numEpisodes = data.numEpisodes,
+                seed = data.seed
+            ),
+            params = dict(
+                explorationStrategy = data.explorationStrategy,
+                experienceReplay = data.experienceReplay,
+                targetNetwork = data.targetNetwork,
+                replayBufferSize = data.replayBufferSize if data.experienceReplay else None,
+                targetFrequency = data.targetFrequency if data.targetNetwork else None,
+                explorationValue = data.explorationValue,
+                annealingRate = data.annealingRate,
+                alpha = data.alpha,
+                gamma = data.gamma,
+                batchSize = data.batchSize
+            ),
+            results = dict(
+                avgRuntime = formatRuntime(data.avgRuntime),
+                avgReward = self.avgReward,
+                avgActionBias = self.avgActionBias,
+                avgLoss = self.avgLoss
+            )
+        )        
         with open(self.basePath / 'summary.json', 'w') as f:
-            json.dump(data, f, indent=2)
+            json.dump(summary, f, indent=2)
         return

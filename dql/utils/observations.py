@@ -2,13 +2,13 @@
 
 from typing import Optional, Iterable
 
-from numpy import array, ndarray
+import numpy as np
 
 
 class Observation:
     """ Type to easily pass around an observation made by an agent. """
 
-    def __init__(self, s: ndarray, a: int, r: float, s_: ndarray, done: bool):
+    def __init__(self, s: np.ndarray, a: int, r: float, s_: np.ndarray, done: bool):
         self._s = s
         self._a = a
         self._r = r
@@ -16,7 +16,7 @@ class Observation:
         self._done = done
         return
     
-    def unpack(self) -> tuple[ndarray, int, float, ndarray, bool]:
+    def unpack(self) -> tuple[np.ndarray, int, float, np.ndarray, bool]:
         """
         Unpacks the observation into its respective components.
         
@@ -27,10 +27,10 @@ class Observation:
             - next state
             - done flag
         """
-        return self._s, self._a, self._r, self._s_, self._done
+        return self.s, self.a, self.r, self.s_, self.done
 
     @property
-    def s(self) -> ndarray:
+    def s(self) -> np.ndarray:
         """ state """
         return self._s
     
@@ -45,7 +45,7 @@ class Observation:
         return self._r
     
     @property
-    def s_(self) -> ndarray:
+    def s_(self) -> np.ndarray:
         """ next state """
         return self._s_
     
@@ -54,12 +54,14 @@ class Observation:
         """ whether s_ was a terminal state """
         return self._done
 
+
 class ObservationSet:
     """ Type to easily pass around a set of observations made by an agent. """
 
     def __init__(self, observations: Optional[Iterable[Observation]] = None):
         """ Initializes the set. If no observations are provided, an empty list is used. """
-        self.observations = observations if observations is not None else []
+        
+        self.observations = list(observations) if observations is not None else []
         return
     
     def add(self, observation: Observation) -> None:
@@ -67,7 +69,7 @@ class ObservationSet:
         self.observations.append(observation)
         return
 
-    def unpack(self) -> tuple[ndarray, ndarray, ndarray, ndarray, ndarray]:
+    def unpack(self) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Unpacks the observations into their respective arrays.
         
@@ -79,27 +81,12 @@ class ObservationSet:
             - done flags
         """
         return (
-            array([o.s for o in self.observations]),
-            array([o.a for o in self.observations]),
-            array([o.r for o in self.observations]),
-            array([o.s_ for o in self.observations]),
-            array([o.done for o in self.observations])
+            np.array([o.s for o in self.observations]),
+            np.array([o.a for o in self.observations]),
+            np.array([o.r for o in self.observations]),
+            np.array([o.s_ for o in self.observations]),
+            np.array([o.done for o in self.observations])
         )
-
-    @property
-    def totalReward(self) -> float:
-        """ The total reward of the observations in the set. """
-        return sum(o.r for o in self.observations)
-
-    @property
-    def nLeft(self) -> int:
-        """ The number of left actions the agent took in the set. """
-        return sum(o.a == 0 for o in self.observations)
-
-    @property
-    def nRight(self) -> int:
-        """ The number of right actions the agent took in the set. """
-        return sum(o.a == 1 for o in self.observations)
 
     def __len__(self) -> int:
         return len(self.observations)
@@ -116,3 +103,26 @@ class ObservationSet:
     def __delitem__(self, index: int) -> None:
         del self.observations[index]
         return
+
+class ObservationQueue(ObservationSet):
+    """ Type to easily pass around a queue of observations made by an agent. """
+
+    def __init__(self, observations: Optional[Iterable[Observation]] = None, maxSize: Optional[int] = None):
+        """ Initializes the queue. If no observations are provided, an empty list is used. """
+        super().__init__(observations)
+        self.maxSize = maxSize
+        return
+
+    def add(self, observation: Observation) -> None:
+        """ Adds an observation to the queue. """
+        if len(self.observations) == self.maxSize:
+            self.observations.pop(0)
+        self.observations.append(observation)
+        return
+
+    def sample(self, size: int) -> 'ObservationQueue':
+        """ Samples a random subset of the queue. """
+        return ObservationQueue(np.random.choice(self.observations, size=size))
+
+    def __add__(self, other: 'ObservationQueue') -> 'ObservationQueue':
+        return ObservationQueue(self.observations + other.observations)

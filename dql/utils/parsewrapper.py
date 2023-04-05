@@ -12,8 +12,8 @@ class ParseWrapper:
     def __init__(self, parser: ArgumentParser):
         """ Adds arguments to the passed parser object and parses them. """
         parser.add_argument('-es', dest='explorationStrategy',
-            type=str, default='e-greedy', choices=['e-greedy', 'boltzmann', 'ucb'],
-            help='Exploration strategy, {e-greedy, boltzmann, ucb}'
+            type=str, default='egreedy', choices=['egreedy', 'boltzmann', 'ucb'],
+            help='Exploration strategy, {egreedy, boltzmann, ucb}'
         )
         parser.add_argument('-ev', dest='explorationValue',
             type=float, default=None, help=f'Exploration value (e-greedy: {UC.e}, boltzmann: {UC.t}, ucb: {UC.z})'
@@ -32,27 +32,27 @@ class ParseWrapper:
         parser.add_argument('-nr', dest='numRepetitions',
             type=int, default=5, help='Number of repetitions'
         )
-        parser.add_argument('-b', dest='batchSize',
+        parser.add_argument('-bs', dest='batchSize',
             type=int, default=32, help='Batch size'
         )
-        parser.add_argument('-MR', dest='memoryReplay',
-            action='store_true', help='Use memory replay'
+        parser.add_argument('-ER', dest='experienceReplay',
+            action='store_true', help='Use experience replay'
         )
-        parser.add_argument('-m', dest='memorySize',
-            type=int, default=2000, help='Memory size'
+        parser.add_argument('-rb', dest='replayBufferSize',
+            type=int, default=2000, help='Number of time steps to store in replay buffer'
         )
         parser.add_argument('-TN', dest='targetNetwork',
             action='store_true', help='Use target network'
         )
-        parser.add_argument('-f', dest='targetFrequency',
-            type=int, default=100, help='Target network update frequency'
+        parser.add_argument('-tf', dest='targetFrequency',
+            type=int, default=100, help='Number of episodes after which to update target network'
         )
         
         parser.add_argument('-I', dest='runID',
             type=str, default=None,
             help='Run ID used for saving checkpoints and plots (default: yyyymmdd-hhmmss)'
         )
-        parser.add_argument('-S', '--seed', type=int, default=42, help='Random seed')
+        parser.add_argument('-S', '--seed', type=int, default=None, help='Random seed')
         parser.add_argument('-V', '--verbose', action='store_true', help='Verbose output')
         parser.add_argument('-D', '--debug', action='store_true', help='Debug mode')
         parser.add_argument('-R', '--render', action='store_true', help='Render 10 episodes after running')
@@ -79,7 +79,7 @@ class ParseWrapper:
     def resolveDefaultNones(args: dict[str, any]) -> DotDict[str, any]:
         """ Resolves default values for exploration value and run ID. """
         resolvedArgs = args.copy()
-        defaultExplorationValues = {'e-greedy': 0.1, 'boltzmann': 1.0, 'ucb': 2.0}
+        defaultExplorationValues = {'egreedy': 1.0, 'boltzmann': 1.0, 'ucb': 2.0}
         if args['explorationValue'] is None:
             resolvedArgs['explorationValue'] = defaultExplorationValues[args['explorationStrategy']]
         if args['runID'] is None:
@@ -88,9 +88,9 @@ class ParseWrapper:
 
     def validate(self) -> None:
         """ Checks the validity of all passed values for the experiment. """
-        if self.args.explorationStrategy == 'e-greedy':
+        if self.args.explorationStrategy == 'egreedy':
             assert 0 <= self.args.explorationValue <= 1, \
-                f'For e-greedy exploration, {UC.e} value must be in [0, 1]'
+                f'For egreedy exploration, {UC.e} value must be in [0, 1]'
         elif self.args.explorationStrategy == 'boltzmann':
             assert self.args.explorationValue > 0, \
                 f'For boltzmann exploration, {UC.t} value must be > 0'
@@ -104,17 +104,17 @@ class ParseWrapper:
             f'Learning rate {UC.a} must be in [0, 1]'
         assert 0 <= self.args.gamma <= 1, \
             f'Discount factor {UC.g} must be in [0, 1]'
-        assert 0 < self.args.numEpisodes <= 2000, \
-            'Number of episodes must be in {1 .. 2000}'
+        assert 0 < self.args.numEpisodes <= 5000, \
+            'Number of episodes must be in {1 .. 5000}'
         assert 0 < self.args.numRepetitions <= 100, \
             'Number of repetitions must be in {1 .. 100}'
+        assert self.args.batchSize in {1, 2, 4, 8, 16, 32, 64, 128, 256}, \
+            'Batch size must be a power of 2 in {1 .. 256}'
         if self.args.memoryReplay:
-            assert self.args.batchSize in {1, 2, 4, 8, 16, 32, 64, 128}, \
-                'Batch size must be a power of 2 in {1 .. 128}'
-            assert self.args.batchSize <= self.args.memorySize, \
-                'Batch size must be smaller than or equal to memory size'
-            assert 0 <= self.args.memorySize <= 20_000, \
+            assert 0 <= self.args.replayBufferSize <= 20_000, \
                 'Memory size must be in {0 .. 20_000}'
+            assert self.args.replayBufferSize >= self.args.batchSize, \
+                'Replay buffer size must be larger than or equal to batch size'
         if self.args.targetNetwork:
             assert 0 < self.args.targetFrequency <= 1000, \
                 'Target network update frequency must be in {1 .. 1000}'
