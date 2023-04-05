@@ -3,10 +3,10 @@
 import argparse
 from time import perf_counter
 
-from dql.agent import DQLAgent, renderEpisodes
+from dql.agents.agent import DQLAgent
 from dql.utils.parsewrapper import ParseWrapper
 from dql.utils.namespaces import P
-from dql.utils.helpers import fixDirectories, PrintIfDebug, getMemoryUsage
+from dql.utils.helpers import getMemoryUsage, fixDirectories, PrintIfDebug, renderEpisodes
 from dql.utils.datamanager import DataManager
 
 import numpy as np
