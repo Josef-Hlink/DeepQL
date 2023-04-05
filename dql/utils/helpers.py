@@ -10,7 +10,9 @@ from dql.utils.minis import bold, formatRuntime
 from dql.utils.progressbar import ProgressBar
 
 import psutil
+import numpy as np
 from keras.models import load_model
+from gym import Env
 
 
 def fixDirectories() -> None:
@@ -46,7 +48,7 @@ def getMemoryUsage():
     return psutil.Process().memory_info().rss / (1024**2)
 
 
-def renderEpisodes(env: gym.Env, modelPath: str, numEpisodes: int = 10, V: bool = False) -> None:
+def renderEpisodes(env: Env, modelPath: str, numEpisodes: int = 10, V: bool = False) -> None:
     """ Renders a number of episodes using a saved model. """
 
     assert env.render_mode == 'human', 'Environment must be rendered in human mode.'
