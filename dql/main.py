@@ -11,11 +11,11 @@ from dql.agents.exploration import EpsilonGreedy, Boltzmann, UCB
 from dql.utils.parsewrapper import ParseWrapper
 from dql.utils.namespaces import P
 from dql.utils.helpers import getMemoryUsage, fixDirectories, PrintIfDebug, renderEpisodes
-from dql.utils.datamanager import DataManager
+from dql.utils.datamanager import DataManager, ConcatDataManager
 
 import numpy as np
-import tensorflow as tf
 import gym
+
 
 def main():
 
@@ -25,16 +25,14 @@ def main():
 
     argParser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     args = ParseWrapper(argParser)()
-    
-    args.seed = args.seed if args.seed is not None else np.random.randint(0, 10**3)
-    np.random.seed(args.seed)
-    tf.random.set_seed(args.seed)
 
     V, D = args.verbose, args.debug
     printD = PrintIfDebug(D)
-    dataManager = DataManager(args.runID)
+    if args.concat:
+        dataManager = ConcatDataManager(args.runID)
+    else:
+        dataManager = DataManager(args.runID)
 
-    # hacky solution to get around importing all the annealing schemes or 
     annealingScheme: AnnealingScheme = getAnnealingScheme(args.annealingScheme, args.numEpisodes)
     explorationStrategy = {
         'egreedy': EpsilonGreedy,
@@ -73,9 +71,9 @@ def main():
         printD(f'Action distribution:\n{np.sum(results["actions"], axis=0) / np.sum(results["actions"])}')
         printD(f'Average loss: {np.mean(results["losses"])}')
         
-        dataManager.saveModel(agent.model, rep+1, 'behaviour')
+        dataManager.saveModel(agent.model, kind='behaviour')
         if agent.usingTN:
-            dataManager.saveModel(agent.targetModel, rep+1, 'target')
+            dataManager.saveModel(agent.targetModel, kind='target')
 
         agent.reset()
 

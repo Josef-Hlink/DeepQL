@@ -49,9 +49,9 @@ class ParseWrapper:
         
         parser.add_argument('-I', dest='runID',
             type=str, default=None,
-            help='Run ID used for saving checkpoints and plots (default: yyyymmdd-hhmmss)'
+            help='Run ID used for saving results (default: yyyymmdd-hhmmss)'
         )
-        parser.add_argument('-S', '--seed', type=int, default=None, help='Random seed')
+        parser.add_argument('-C', '--concat', action='store_true', help='Concatenate results to existing results directory')
         parser.add_argument('-V', '--verbose', action='store_true', help='Verbose output')
         parser.add_argument('-D', '--debug', action='store_true', help='Debug mode')
         parser.add_argument('-R', '--render', action='store_true', help='Render 10 episodes after running')
