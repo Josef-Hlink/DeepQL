@@ -25,12 +25,58 @@ Lower than 3.10 might cause issues with `tensorflow` and the recent improvements
 4. Install the requirements
   - `pip install -e .` (should work on all platforms)
 
-## Usage
+## Script usage
 
 From the root directory, you can now run the package with the command `dql`.
 
 When using for the first time, run with the help flag to see the available arguments: `dql -h` or `dql --help`.
 
-If _setup.py_ did not work (step 4), please manually identify & install the dependencies and run the project with `python3.10 dql/main.py`.
+For light use (single run or handful of runs with low episode count), an example command would be:
 
-Note that you will have to remove the dots from the imports in _dql/main.py_: `from .utils.module import func` $\to$ `from utils.module import func`.
+```bash
+dql -nr 5 -ne 5000 -es boltzmann -V -R
+```
+
+This will run the algorithm 5 independent times for 5000 episodes each, using the Boltzmann exploration strategy, with verbose output and the trained agent's behaviour being rendered after each repetition.
+
+For more intensive experiments, we might run into memory issues.
+To get around this, you should run the `dqlw.sh` script, which will call `dql` with the arguments you provide for `-nr <x>` independent times, i.e. it calls `dql` `x` times with the same arguments.
+
+For example:
+
+```bash
+cd experiments
+./dqlw.sh -nr 10 -ne 25000 -es boltzmann -I boltzmann
+# you probably do not want verbose output and rendering here
+```
+
+In _experiments_, you will also find a couple of scripts that were used for the hyperparameter tuning.
+
+## Results
+
+Results are automatically saved under _data/yymmdd-hhmmss/_ unless you specify a run id with `-I <id>`.
+
+Example structure of results directory:
+
+```bash
+data
+└── boltzmann
+    ├── summary.json
+    ├── actions.npz
+    ├── losses.npz
+    ├── rewards.npz
+    └── behaviour_models
+        ├── 1.h5
+        ├── 2.h5
+        ...
+        └── 10.h5
+```
+
+If the `-TN` (target network) flag was set, the target_models will also be saved, just like the behaviour_models.
+
+## Notebooks
+
+The notebooks are used for data analysis and visualisation.
+They work by importing a `DataManager` class from the `dql.utils` module which allows them to easily load the data from the data directory.
+It is important to note that the data directory is not included in the repository, so you will have to run the scripts first to generate the data.
+Maybe in the future we will host the data somewhere so it can be pulled, but for now you will have to generate it yourself.

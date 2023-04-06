@@ -91,20 +91,20 @@ class ParseWrapper:
             f'Learning rate {UC.a} must be in [0, 1]'
         assert 0 <= self.args.gamma <= 1, \
             f'Discount factor {UC.g} must be in [0, 1]'
-        assert 0 < self.args.numEpisodes <= 5000, \
-            'Number of episodes must be in {1 .. 5000}'
+        assert 0 < self.args.numEpisodes <= 25_000, \
+            'Number of episodes must be in {1 .. 25,000}'
         assert 0 < self.args.numRepetitions <= 100, \
             'Number of repetitions must be in {1 .. 100}'
-        assert self.args.batchSize in {1, 2, 4, 8, 16, 32, 64, 128, 256}, \
-            'Batch size must be a power of 2 in {1 .. 256}'
+        assert self.args.batchSize in {1, 2, 4, 8, 16, 32, 64, 128, 256, 512}, \
+            'Batch size must be a power of 2 in {1 .. 512}'
         if self.args.memoryReplay:
-            assert 0 <= self.args.replayBufferSize <= 20_000, \
-                'Memory size must be in {0 .. 20_000}'
+            assert 0 <= self.args.replayBufferSize <= 100_000, \
+                'Replay buffer size must be in {0 .. 100,000}'
             assert self.args.replayBufferSize >= self.args.batchSize, \
                 'Replay buffer size must be larger than or equal to batch size'
         if self.args.targetNetwork:
-            assert 0 < self.args.targetFrequency <= 1000, \
-                'Target network update frequency must be in {1 .. 1000}'
+            assert 0 < self.args.targetFrequency <= 2500, \
+                'Target network update frequency must be in {1 .. 2500}'
             assert self.args.targetFrequency <= self.args.numEpisodes, \
                 'Target network update frequency must be smaller than or equal to number of episodes'
         return
