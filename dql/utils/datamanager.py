@@ -55,7 +55,7 @@ class DataManager:
             if len(losses[i]) < maxLen:
                 losses[i] = np.pad(losses[i], (0, maxLen - len(losses[i])), 'constant', constant_values=np.nan)
         losses = np.array(losses)
-        self.avgLoss = float(np.mean(losses))
+        self.avgLoss = float(np.nanmean(losses))
         np.save(self.basePath / 'losses.npy', losses)
         return
     
@@ -70,12 +70,12 @@ class DataManager:
             ),
             params = dict(
                 explorationStrategy = data.explorationStrategy,
+                annealingScheme = data.annealingScheme,
                 experienceReplay = data.experienceReplay,
                 targetNetwork = data.targetNetwork,
                 replayBufferSize = data.replayBufferSize if data.experienceReplay else None,
                 targetFrequency = data.targetFrequency if data.targetNetwork else None,
                 explorationValue = data.explorationValue,
-                annealingRate = data.annealingRate,
                 alpha = data.alpha,
                 gamma = data.gamma,
                 batchSize = data.batchSize

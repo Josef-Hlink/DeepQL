@@ -15,16 +15,15 @@ class ParseWrapper:
             type=str, default='egreedy', choices=['egreedy', 'boltzmann', 'ucb'],
             help='Exploration strategy, {egreedy, boltzmann, ucb}'
         )
-        parser.add_argument('-ev', dest='explorationValue',
-            type=float, default=None, help=f'Exploration value (e-greedy: {UC.e}, boltzmann: {UC.t}, ucb: {UC.z})'
+        parser.add_argument('-as', dest='annealingScheme',
+            type=int, default=None, choices=[0, 1, 2, 3, 4],
+            help='Annealing scheme, {0, 1, 2, 3, 4}'
         )
-        parser.add_argument('-ar', dest='annealingRate',
-            type=float, default=0.999, help=f'Annealing rate (only applicable to {UC.e} and {UC.t})')
         parser.add_argument('-a', dest='alpha',
-            type=float, default=0.1, help=f'Learning rate ({UC.a})'
+            type=float, default=0.001, help=f'Learning rate ({UC.a})'
         )
         parser.add_argument('-g', dest='gamma',
-            type=float, default=0.99, help=f'Discount factor ({UC.g})'
+            type=float, default=0.999, help=f'Discount factor ({UC.g})'
         )
         parser.add_argument('-ne', dest='numEpisodes',
             type=int, default=1000, help='Budget in episodes'
@@ -79,27 +78,15 @@ class ParseWrapper:
     def resolveDefaultNones(args: dict[str, any]) -> DotDict[str, any]:
         """ Resolves default values for exploration value and run ID. """
         resolvedArgs = args.copy()
-        defaultExplorationValues = {'egreedy': 1.0, 'boltzmann': 1.0, 'ucb': 2.0}
-        if args['explorationValue'] is None:
-            resolvedArgs['explorationValue'] = defaultExplorationValues[args['explorationStrategy']]
+        defaultAnnealingSchemes = {'egreedy': 1, 'boltzmann': 1, 'ucb': 0}
+        if args['annealingScheme'] is None:
+            resolvedArgs['annealingScheme'] = defaultAnnealingSchemes[args['explorationStrategy']]
         if args['runID'] is None:
             resolvedArgs['runID'] = datetime.now().strftime('%Y%m%d-%H%M%S')
         return DotDict(resolvedArgs)
 
     def validate(self) -> None:
         """ Checks the validity of all passed values for the experiment. """
-        if self.args.explorationStrategy == 'egreedy':
-            assert 0 <= self.args.explorationValue <= 1, \
-                f'For egreedy exploration, {UC.e} value must be in [0, 1]'
-        elif self.args.explorationStrategy == 'boltzmann':
-            assert self.args.explorationValue > 0, \
-                f'For boltzmann exploration, {UC.t} value must be > 0'
-        elif self.args.explorationStrategy == 'ucb':
-            assert self.args.explorationValue > 0, \
-                f'For ucb exploration, {UC.z} value must be > 0'
-        assert 0 < self.args.annealingRate <= 1, \
-            f'Annealing rate must be in (0, 1]'
-        
         assert 0 <= self.args.alpha <= 1, \
             f'Learning rate {UC.a} must be in [0, 1]'
         assert 0 <= self.args.gamma <= 1, \

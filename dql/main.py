@@ -2,8 +2,12 @@
 
 import argparse
 from time import perf_counter
+from pathlib import Path
 
 from dql.agents.agent import DQLAgent
+from dql.agents.annealing import AnnealingScheme, getAnnealingScheme
+from dql.agents.exploration import EpsilonGreedy, Boltzmann, UCB
+
 from dql.utils.parsewrapper import ParseWrapper
 from dql.utils.namespaces import P
 from dql.utils.helpers import getMemoryUsage, fixDirectories, PrintIfDebug, renderEpisodes
@@ -12,7 +16,6 @@ from dql.utils.datamanager import DataManager
 import numpy as np
 import tensorflow as tf
 import gym
-
 
 def main():
 
@@ -31,13 +34,19 @@ def main():
     printD = PrintIfDebug(D)
     dataManager = DataManager(args.runID)
 
+    # hacky solution to get around importing all the annealing schemes or 
+    annealingScheme: AnnealingScheme = getAnnealingScheme(args.annealingScheme, args.numEpisodes)
+    explorationStrategy = {
+        'egreedy': EpsilonGreedy,
+        'boltzmann': Boltzmann,
+        'ucb': UCB
+    }[args.explorationStrategy](annealingScheme)
+
     env = gym.make('CartPole-v1', render_mode='rgb_array')
     agent = DQLAgent(
-        explorationStrategy = args.explorationStrategy,
-        explorationValue = args.explorationValue,
+        explorationStrategy = explorationStrategy,
         alpha = args.alpha,
         gamma = args.gamma,
-        annealingRate = args.annealingRate,
         batchSize = args.batchSize,
         replayBufferSize = args.memorySize if args.memoryReplay else None,
         targetUpdateFreq = args.targetFrequency if args.targetNetwork else None,
@@ -62,6 +71,7 @@ def main():
         
         printD(f'Average reward: {np.mean(results["rewards"])}')
         printD(f'Action distribution:\n{np.sum(results["actions"], axis=0) / np.sum(results["actions"])}')
+        printD(f'Average loss: {np.mean(results["losses"])}')
         
         dataManager.saveModel(agent.model, rep+1, 'behaviour')
         if agent.usingTN:
@@ -72,6 +82,7 @@ def main():
     toc = perf_counter()
     data = args.copy()
     data['avgRuntime'] = (toc - tic) / args.numRepetitions
+    data['annealingScheme'] = annealingScheme.dict()
 
     dataManager.saveRewards(R)
     dataManager.saveActions(A)
@@ -82,7 +93,8 @@ def main():
 
     if args.render:
         env = gym.make('CartPole-v1', render_mode='human')
-        renderEpisodes(env, f'{P.data}/{args.runID}/behaviour_models/{args.numRepetitions-1}.h5', 10, V)
+        modelPath = Path(P.data) / args.runID / 'behaviour_models' / f'{args.numRepetitions}.h5'
+        renderEpisodes(env, modelPath, 10, V)
 
     rssEnd = getMemoryUsage()
 

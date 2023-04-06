@@ -4,6 +4,7 @@ from functools import partial
 
 from dql.utils.helpers import prog
 from dql.utils.observations import Observation, ObservationSet, ObservationQueue
+from dql.agents.exploration import ExplorationStrategy
 
 import numpy as np
 import gym
@@ -19,20 +20,17 @@ class DQLAgent:
     """
 
     def __init__(self,
-        explorationStrategy: str, explorationValue: float,
-        alpha: float, gamma: float, annealingRate: float, batchSize: int,
-        replayBufferSize: int = None, targetUpdateFreq: int = None,
+        explorationStrategy: ExplorationStrategy, alpha: float, gamma: float,
+        batchSize: int, replayBufferSize: int = None, targetUpdateFreq: int = None,
         actionSpace: int = 2, stateSpace: int = 4
     ) -> None:
         """
         Initializes a Deep Q-Learning agent.
         
         Params:
-            - [str]   `explorationStrategy`: one of 'egreedy', 'boltzmann', 'ucb'
-            - [float] `explorationValue`: (initial) value of the exploration parameter, e.g. epsilon for e-greedy
+            - [eS]    `explorationStrategy`: exploration strategy instance
             - [float] `alpha`: learning rate for the neural network
             - [float] `gamma`: discount factor for future rewards
-            - [float] `annealingRate`: rate at which the exploration parameter is annealed
             - [int]   `batchSize`: size of the batches used in both memory replay and regular training
             - [int]   `replayBufferSize`: size of the experience replay buffer
                 * if specified, the agent will use experience replay (`usingER` will be set to True)
@@ -42,16 +40,7 @@ class DQLAgent:
             - [int]   `stateSpace`: number of parameters that represent a state in the environment
         """
 
-        self.getAction: function = {
-            'egreedy': self._epsilonGreedyAction,
-            'boltzmann': self._boltzmannAction,
-            'ucb': self._ucbAction
-        }[explorationStrategy]
-
         self.eS = explorationStrategy
-        self.eV = explorationValue
-        self.eV0 = explorationValue
-        self.aR = annealingRate
         self.alpha = alpha
         self.gamma = gamma
         self.batchSize = batchSize
@@ -98,21 +87,23 @@ class DQLAgent:
         """
 
         # initialize arrays to store rewards, actions, and losses
-        self.R = np.zeros(nEpisodes, dtype=np.int16)
-        self.A = np.zeros((nEpisodes, self.actionSpace), dtype=np.int16)
-        self.L = []
+        R = np.zeros(nEpisodes, dtype=np.int16)
+        A = np.zeros((nEpisodes, self.actionSpace), dtype=np.int16)
+        N = np.zeros(self.actionSpace, dtype=np.int32)
+        L = []
 
         for ep in prog(range(nEpisodes), V, f'training for {nEpisodes} episodes'):
 
             s, _ = env.reset()
             while True:
                 # get action from policy
-                a = self.getAction(s)
+                a = self.getAction(s, N)
                 # take action and observe reward and next state
                 s_, r, done, truncated, _ = env.step(a)
                 # housekeeping
-                self.A[ep, a] += 1
-                self.R[ep] += r
+                R[ep] += r
+                A[ep, a] += 1
+                N[a] += 1
                 o = Observation(s, a, r, s_, done)
                 # update state
                 s = s_
@@ -128,7 +119,7 @@ class DQLAgent:
             # learn from observations in buffer
             while len(self.buffer) >= self.batchSize:
                 loss = self.updateModel(self.buffer[:self.batchSize])
-                self.L.append(loss)
+                L.append(loss)
                 del self.buffer[:self.batchSize]
             # experience replay
             if self.usingER:
@@ -138,14 +129,14 @@ class DQLAgent:
                 self.updateTargetModel()
 
             # anneal the exploration parameter
-            self.anneal()
+            self.eS.anneal()
 
-        return {'rewards': self.R, 'actions': self.A, 'losses': np.array(self.L, dtype=np.float32)}
+        return {'rewards': R, 'actions': A, 'losses': np.array(L, dtype=np.float32)}
 
     def reset(self) -> None:
         """ Resets all relevant agent's member variables. """
-        # reset exploration parameter
-        self.eV = self.eV0
+        # reset exploration strategy
+        self.eS.reset()
         # reset memory
         self.buffer = ObservationSet()
         if self.usingER:
@@ -199,6 +190,11 @@ class DQLAgent:
     # Q-functions #
     ###############
 
+    def getAction(self, state: np.ndarray, N: np.ndarray) -> int:
+        """ Returns an action based on the behaviour policy for a given state. """
+        Q = self.QBehaviour(state)
+        return self.eS(Q, N)
+
     @property
     def QBehaviour(self) -> callable:
         """ Returns the Q-function based on the behaviour policy. """
@@ -223,51 +219,3 @@ class DQLAgent:
         if len(state.shape) == 1:
             return self.targetModel(np.expand_dims(state, axis=0), training=training).numpy()[0]
         return self.targetModel(state, training=training).numpy()
-
-    ##########################
-    # Exploration strategies #
-    ##########################
-
-    def _epsilonGreedyAction(self, state: np.ndarray) -> int:
-        """ Returns an action based on the ε-greedy exploration strategy. """
-        if np.random.rand() < self.epsilon:
-            return np.random.randint(0, 2)
-        Q = self.QBehaviour(state)
-        return np.argmax(Q)
-    
-    def _boltzmannAction(self, state: np.ndarray) -> int:
-        """ Returns an action based on the Boltzmann exploration strategy. """
-        Q = self.QBehaviour(state)
-        Q /= self.tau; Q -= np.max(Q)
-        return np.random.choice(self.actionSpace, p=np.exp(Q) / np.sum(np.exp(Q)))
-
-    def _ucbAction(self, state: np.ndarray) -> int:
-        """ Returns an action based on the UCB exploration strategy. """
-        actionCounts = np.sum(self.A, axis=0)
-        if np.any(actionCounts == 0):
-            return np.argwhere(actionCounts == 0)[0][0]
-        Q = self.QBehaviour(state)
-        Q += np.sqrt(self.zeta * np.log(np.sum(self.A)) / np.sum(self.A, axis=0))
-        return np.argmax(Q)
-
-    def anneal(self):
-        """ We only anneal for ε or τ; for UCB the exploration value (ζ) is fixed. """
-        if self.zeta is None:
-            self.eV = max(0.01, self.eV * self.aR)
-        return
-    
-    @property
-    def epsilon(self) -> float:
-        """ Exploration value for ε-greedy. """
-        return self.eV if self.eS == 'egreedy' else None
-    
-    @property
-    def tau(self) -> float:
-        """ Exploration value for Boltzmann. """
-        return self.eV if self.eS == 'boltzmann' else None
-    
-    @property
-    def zeta(self) -> float:
-        """ Exploration value for UCB. """
-        return self.eV if self.eS == 'ucb' else None
-
