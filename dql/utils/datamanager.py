@@ -103,6 +103,34 @@ class DataManager:
             avgLoss = self.avgLoss
         )
 
+    def loadModel(self, kind: str, repetition: int) -> Sequential:
+        """ Loads a trained model. """
+        folder = self.basePath / f'{kind}_models'
+        repetitions = [int(f.stem) for f in folder.iterdir() if f.is_file()]
+        assert repetition in repetitions, f'Repetition {repetition} does not exist in {folder}.'
+        return Sequential.load(folder / f'{repetition}.h5')
+    
+    def loadRewards(self) -> np.ndarray:
+        """ Loads the rewards. """
+        return np.load(self.basePath / 'rewards.npy')
+    
+    def loadActions(self) -> np.ndarray:
+        """ Loads the actions. """
+        return np.load(self.basePath / 'actions.npy')
+    
+    def loadLosses(self) -> np.ndarray:
+        """ Loads the losses. """
+        return np.load(self.basePath / 'losses.npy')
+    
+    def loadSummary(self) -> DotDict:
+        """ Loads the summary. """
+        with open(self.basePath / 'summary.json', 'r') as f:
+            summary = DotDict(json.load(f))
+        summary.meta = DotDict(summary.meta)
+        summary.params = DotDict(summary.params)
+        summary.results = DotDict(summary.results)
+        return summary
+
 
 class ConcatDataManager(DataManager):
 
@@ -170,15 +198,17 @@ class ConcatDataManager(DataManager):
             return DotDict(
                 runID = data.runID,
                 numRepetitions = data.numRepetitions,
-                numEpisodes = data.numEpisodes
+                numEpisodes = data.numEpisodes,
+                runs = 1
             )
         with open(path) as f:
             summary = DotDict(json.load(f))
-        runs = summary.results['runs']
+        runs = summary.meta['runs'] + 1
         return DotDict(
             runID = data.runID,
             numRepetitions = data.numRepetitions * runs,
-            numEpisodes = data.numEpisodes
+            numEpisodes = data.numEpisodes,
+            runs = runs
         )
 
     def _extractParamData(self, data: DotDict) -> DotDict:
@@ -188,23 +218,60 @@ class ConcatDataManager(DataManager):
     def _extractResultData(self, data: DotDict) -> DotDict:
         """ Extracts the result data from the data. """
         path = self.basePath / 'summary.json'
-        print('CALLED')
         if not path.exists():
             return DotDict(
                 avgRuntime = formatRuntime(data.avgRuntime),
                 avgReward = self.avgReward,
                 avgActionBias = self.avgActionBias,
-                avgLoss = float(self.avgLoss),
-                runs = 1
+                avgLoss = float(self.avgLoss)
             )
         with open(path) as f:
             summary = DotDict(json.load(f))
+        runs = summary.meta['runs'] + 1
         results = DotDict(summary.results)
-        runs = results.runs + 1
         return DotDict(
             avgRuntime = formatRuntime((formattedRuntimeToSeconds(results.avgRuntime) * (runs - 1) + data.avgRuntime) / runs),
             avgReward = (results.avgReward * (runs - 1) + self.avgReward) / runs,
             avgActionBias = (results.avgActionBias * (runs - 1) + self.avgActionBias) / runs,
-            avgLoss = (results.avgLoss * (runs - 1) + self.avgLoss) / runs,
-            runs = runs
+            avgLoss = (results.avgLoss * (runs - 1) + self.avgLoss) / runs
         )
+
+    def loadModel(self, kind: str, repetition: int) -> Sequential:
+        """ Loads a trained model. """
+        return super().loadModel(kind, repetition)
+    
+    def loadRewards(self) -> np.ndarray:
+        """ Loads the rewards. """
+        path = self.basePath / 'rewards.npz'
+        return self._loadArr('rewards')
+    
+    def loadActions(self) -> np.ndarray:
+        """ Loads the actions. """
+        path = self.basePath / 'actions.npz'
+        return self._loadArr('actions')
+    
+    def loadLosses(self) -> np.ndarray:
+        """ Loads the losses. """
+        path = self.basePath / 'losses.npz'
+        # because of the inconsistent length of the losses, we need to load them manually
+        with np.load(path) as data:
+            individualLosses = []
+            for i in range(len(data.files)):
+                for j in range(data[f'arr_{i}'].shape[0]):
+                    individualLosses.append(data[f'arr_{i}'][j])
+        maxLen = max([len(l) for l in individualLosses])
+        for i, losses in enumerate(individualLosses):
+            if len(losses) < maxLen:
+                individualLosses[i] = np.pad(losses, (0, maxLen - len(losses)), 'constant', constant_values=np.nan)
+        return np.array(individualLosses)
+
+    def _loadArr(self, name: str) -> np.ndarray:
+        """ Loads an array from a .npz file. """
+        path = self.basePath / f'{name}.npz'
+        with np.load(path) as data:
+            arr = np.concatenate([data[f'arr_{i}'] for i in range(len(data.files))], axis=0)
+        return arr
+
+    def loadSummary(self) -> DotDict:
+        """ Loads the summary of the run. """
+        return super().loadSummary()
