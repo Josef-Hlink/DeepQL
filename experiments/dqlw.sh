@@ -13,5 +13,9 @@
 REPS=$2
 for i in $(seq 1 $REPS); do
     echo "Run $i"
+    if [ $i -eq 0 ]; then
+        # add verbose flag for first run to see config
+        dql $@ -nr 1 -C -V
+    fi
     dql $@ -nr 1 -C
 done

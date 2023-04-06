@@ -35,11 +35,11 @@ def prog(iterable: Iterable, verbose: bool, title: Optional[str] = None) -> Iter
             yield item
             progressBar.update(i + 1)
     else:
-        title = f' {bold(title)}' if title is not None else ''
+        title = f' {title}' if title is not None else ''
         tic = perf_counter()
-        print(f'Started{bold(title)} at {datetime.now().strftime("%H:%M:%S")}', end='', flush=True)
+        print(f'Started{title} at {bold(datetime.now().strftime("%H:%M:%S"))}', end='', flush=True)
         yield from iterable
-        print(f'\rFinished{bold(title)} in {formatRuntime(perf_counter() - tic)}' + ' ' * 10)
+        print(f'\rFinished{title} in {bold(formatRuntime(perf_counter() - tic))}' + ' ' * 10)
     return
 
 

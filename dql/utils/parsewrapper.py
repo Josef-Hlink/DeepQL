@@ -91,8 +91,8 @@ class ParseWrapper:
             f'Learning rate {UC.a} must be in [0, 1]'
         assert 0 <= self.args.gamma <= 1, \
             f'Discount factor {UC.g} must be in [0, 1]'
-        assert 0 < self.args.numEpisodes <= 25_000, \
-            'Number of episodes must be in {1 .. 25,000}'
+        assert 0 < self.args.numEpisodes <= 50_000, \
+            'Number of episodes must be in {1 .. 50,000}'
         assert 0 < self.args.numRepetitions <= 100, \
             'Number of repetitions must be in {1 .. 100}'
         assert self.args.batchSize in {1, 2, 4, 8, 16, 32, 64, 128, 256, 512}, \

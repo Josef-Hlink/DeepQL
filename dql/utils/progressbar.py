@@ -15,7 +15,7 @@ class ProgressBar:
         self.title = title
         self.w = 50
         self.tic = perf_counter()
-        print(f'Started {bold(self.title)} at {datetime.now().strftime("%H:%M:%S")}')
+        print(f'Started {title} at {bold(datetime.now().strftime("%H:%M:%S"))}')
         self.update(0)
     
     def update(self, i: int):
@@ -25,7 +25,7 @@ class ProgressBar:
         self._updateBar()
         print('\r' + self.bar, end='', flush=True)
         if self.i == self.total:
-            print(f'\r{self.bar[:-5]} - finished in {formatRuntime(perf_counter() - self.tic)}')
+            print(f'\r{self.bar[:-5]} - finished in {bold(formatRuntime(perf_counter() - self.tic))}')
     
     def _updatePercentage(self):
         """ Updates the percentage. """
