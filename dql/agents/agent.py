@@ -4,7 +4,7 @@ from functools import partial
 from time import perf_counter
 from datetime import datetime
 
-from dql.utils.observations import Observation, ObservationSet, ObservationQueue
+from dql.agents.observations import Observation, ObservationSet, ObservationQueue
 from dql.agents.exploration import ExplorationStrategy
 from dql.utils.minis import DotDict, bold, formatRuntime
 from dql.utils.progressbar import ProgressBar
@@ -156,6 +156,11 @@ class DQLAgent:
                     r = np.mean(R[max(0, ep-mAvgWindow):ep+1]),
                     ab = calculateActionBias(A[max(0, ep-mAvgWindow):ep+1])
                 )
+                if ep == nEpisodes-1:
+                    iterator.updateMetrics(
+                        r = np.mean(R),
+                        ab = calculateActionBias(A)
+                    )
 
         if not V:
             print(f'Finished training in {bold(formatRuntime(perf_counter() - tic))}')
