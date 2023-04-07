@@ -7,7 +7,7 @@ from dql.utils.namespaces import P
 from dql.utils.minis import formatRuntime, formattedRuntimeToSeconds, DotDict
 
 import numpy as np
-from keras import Sequential
+from keras.models import Sequential, load_model
 
 
 class DataManager:
@@ -113,7 +113,7 @@ class DataManager:
         folder = self.basePath / f'{kind}_models'
         repetitions = [int(f.stem) for f in folder.iterdir() if f.is_file()]
         assert repetition in repetitions, f'Repetition {repetition} does not exist in {folder}.'
-        return Sequential.load(folder / f'{repetition}.h5')
+        return load_model(folder / f'{repetition}.h5')
     
     def loadRewards(self) -> np.ndarray:
         """ Loads the rewards. """
@@ -144,6 +144,9 @@ class ConcatDataManager(DataManager):
         self.basePath.mkdir(parents=True, exist_ok=True)
         return
     
+    def saveModel(self, model: Sequential, kind: str) -> None:
+        return super().saveModel(model, kind)
+
     def saveRewards(self, rewards: np.ndarray) -> None:
         """ Saves the rewards. """
         self.avgReward = np.mean(rewards)
@@ -248,12 +251,10 @@ class ConcatDataManager(DataManager):
     
     def loadRewards(self) -> np.ndarray:
         """ Loads the rewards. """
-        path = self.basePath / 'rewards.npz'
         return self._loadArr('rewards')
     
     def loadActions(self) -> np.ndarray:
         """ Loads the actions. """
-        path = self.basePath / 'actions.npz'
         return self._loadArr('actions')
     
     def loadLosses(self) -> np.ndarray:
