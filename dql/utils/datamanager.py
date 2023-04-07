@@ -136,6 +136,22 @@ class DataManager:
         summary.results = DotDict(summary.results)
         return summary
 
+    def printSummary(self) -> None:
+        """ Prints the summary with the appropriate indentation. """
+        summary = self.loadSummary()
+        for k1, v1 in summary.items():
+            print(f'{k1}:')
+            for k2, v2 in v1.items():
+                if type(v2) is dict:
+                    print(f'\t{k2}:')
+                    for k3, v3 in v2.items():
+                        print(f'\t\t{k3}: {v3}')
+                else:
+                    if type(v2) is float:
+                        print(f'\t{k2}: {v2:.4f}')
+                    else:
+                        print(f'\t{k2}: {v2}')
+
 
 class ConcatDataManager(DataManager):
 
@@ -282,3 +298,6 @@ class ConcatDataManager(DataManager):
     def loadSummary(self) -> DotDict:
         """ Loads the summary of the run. """
         return super().loadSummary()
+
+    def printSummary(self) -> None:
+        return super().printSummary()
