@@ -1,15 +1,11 @@
 """ Small helper methods. """
 
 import os
-from typing import Iterator, Iterable, Optional
-from time import perf_counter
 from datetime import datetime
 
 from dql.utils.namespaces import P, UC
-from dql.utils.minis import bold, formatRuntime
-from dql.utils.progressbar import ProgressBar
+from dql.utils.minis import bold
 
-import psutil
 import numpy as np
 from keras.models import load_model
 from gym import Env
@@ -25,27 +21,6 @@ def fixDirectories() -> None:
             os.makedirs(path)
             print(f'created {bold(dirName)} directory at `{path}`')
     return
-
-
-def prog(iterable: Iterable, verbose: bool, title: Optional[str] = None) -> Iterator:
-    """ Adds a progress bar to an iterable and yields its contents. """
-    if verbose:
-        progressBar = ProgressBar(len(iterable), title)
-        for i, item in enumerate(iterable):
-            yield item
-            progressBar.update(i + 1)
-    else:
-        title = f' {title}' if title is not None else ''
-        tic = perf_counter()
-        print(f'Started{title} at {bold(datetime.now().strftime("%H:%M:%S"))}', end='', flush=True)
-        yield from iterable
-        print(f'\rFinished{title} in {bold(formatRuntime(perf_counter() - tic))}' + ' ' * 10)
-    return
-
-
-def getMemoryUsage():
-    """ Returns the memory usage of the current process in MB. """
-    return psutil.Process().memory_info().rss / (1024**2)
 
 
 def renderEpisodes(env: Env, modelPath: str, numEpisodes: int = 10, V: bool = False) -> None:
@@ -69,6 +44,7 @@ def renderEpisodes(env: Env, modelPath: str, numEpisodes: int = 10, V: bool = Fa
     
     env.close()
     return
+
 
 class PrintIfVerbose:
     """ Prints only if verbose is True. """

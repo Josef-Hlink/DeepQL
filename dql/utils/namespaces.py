@@ -20,7 +20,7 @@ class UC:
     hd = '\u2500'  if mac else '-'  # ─
     vd = '\u2502'  if mac else '|'  # │
     block = '\u25a0'  if mac else '#'  # ■
-    empty = '\u25a1'  if mac else ' '  # □
+    empty = '\u25a1'  if mac else '='  # □
 
 class LC:
     """ Namespace with a few LaTeX commands for Greek symbols in plots. """

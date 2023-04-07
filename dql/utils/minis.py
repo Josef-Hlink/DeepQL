@@ -2,10 +2,16 @@
 
 from datetime import datetime
 
+from psutil import Process
+
 
 def bold(text: str) -> str:
     """ Returns the passed text in bold. """
     return f'\033[1m{text}\033[0m'
+
+def getRSS():
+    """ Returns the memory usage of the current process in MB. """
+    return Process().memory_info().rss / (1024**2)
 
 def formatRuntime(seconds: float) -> str:
     """ Returns a formatted string of the passed runtime in (mm:)ss.fff. """

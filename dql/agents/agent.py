@@ -1,11 +1,14 @@
 """ Houses the DQLAgent class. """
 
 from functools import partial
+from time import perf_counter
+from datetime import datetime
 
-from dql.utils.helpers import prog
 from dql.utils.observations import Observation, ObservationSet, ObservationQueue
 from dql.agents.exploration import ExplorationStrategy
-from dql.utils.minis import DotDict
+from dql.utils.minis import DotDict, bold, formatRuntime
+from dql.utils.progressbar import ProgressBar
+from dql.utils.statistics import calculateActionBias
 
 import numpy as np
 import gym
@@ -106,7 +109,15 @@ class DQLAgent:
         N = np.zeros(self.actionSpace, dtype=np.int32)
         L = []
 
-        for ep in prog(range(nEpisodes), V, f'training for {nEpisodes} episodes'):
+        if V:
+            iterator = ProgressBar(nEpisodes, updateInterval=nEpisodes//100, metrics=['r', 'ab'])
+            mAvgWindow = 100 if nEpisodes > 10_000 else 10
+        else:
+            print(f'Started training for {nEpisodes} episodes at {bold(datetime.now().strftime("%H:%M:%S"))}')
+            iterator = range(nEpisodes)
+            tic = perf_counter()
+
+        for ep in iterator:
 
             s, _ = env.reset()
             while True:
@@ -138,6 +149,16 @@ class DQLAgent:
 
             # anneal the exploration parameter
             self.eS.anneal()
+
+            if V and nEpisodes >= 1000:
+                # update progress bar with moving averages of rewards, action biases, and losses
+                iterator.updateMetrics(
+                    r = np.mean(R[max(0, ep-mAvgWindow):ep+1]),
+                    ab = calculateActionBias(A[max(0, ep-mAvgWindow):ep+1])
+                )
+
+        if not V:
+            print(f'Finished training in {bold(formatRuntime(perf_counter() - tic))}')
 
         return DotDict(rewards=R, actions=A, losses=np.array(L, dtype=np.float32))
 

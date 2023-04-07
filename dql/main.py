@@ -10,8 +10,10 @@ from dql.agents.exploration import EpsilonGreedy, Boltzmann, UCB
 
 from dql.utils.parsewrapper import ParseWrapper
 from dql.utils.namespaces import P
-from dql.utils.helpers import getMemoryUsage, fixDirectories, PrintIfDebug, renderEpisodes
+from dql.utils.minis import getRSS
+from dql.utils.helpers import fixDirectories, PrintIfDebug, renderEpisodes
 from dql.utils.datamanager import DataManager, ConcatDataManager
+from dql.utils.statistics import calculateActionBias
 
 import numpy as np
 import gym
@@ -19,7 +21,7 @@ import gym
 
 def main():
 
-    rssStart = getMemoryUsage()
+    rssStart = getRSS()
 
     fixDirectories()
 
@@ -69,8 +71,7 @@ def main():
         L.append(results.losses)
         
         printD(f'Average reward: {np.mean(results.rewards):.3f}')
-        normAction0 = (results.actions / np.sum(results.actions, axis=1, keepdims=True))[:, 0]
-        printD(f'Average action bias: {np.mean(np.abs(normAction0 - 0.5) * 2):.3f}')
+        printD(f'Average action bias: {calculateActionBias(results.actions):.3f}')
         printD(f'Average loss: {np.nanmean(results.losses):.3f}')
         
         dataManager.saveModel(agent.model, kind='behaviour')
@@ -94,7 +95,7 @@ def main():
         modelPath = Path(P.data) / args.runID / 'behaviour_models' / f'{args.numRepetitions}.h5'
         renderEpisodes(env, modelPath, 10, V)
 
-    rssEnd = getMemoryUsage()
+    rssEnd = getRSS()
 
     printD(f'RSS start: {rssStart:.2f} MB')
     printD(f'RSS end: {rssEnd:.2f} MB')
