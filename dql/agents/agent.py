@@ -5,6 +5,7 @@ from functools import partial
 from dql.utils.helpers import prog
 from dql.utils.observations import Observation, ObservationSet, ObservationQueue
 from dql.agents.exploration import ExplorationStrategy
+from dql.utils.minis import DotDict
 
 import numpy as np
 import gym
@@ -68,7 +69,20 @@ class DQLAgent:
     # API for outside interaction #
     ###############################
 
-    def train(self, env: gym.Env, nEpisodes: int, V: bool = False) -> dict[str, np.ndarray | list]:
+    def randomWarmup(self, env: gym.Env, nSteps: int) -> None:
+        """ Performs a random warm-up of a given number of steps for the agent to populate its buffer(s). """
+        for _ in range(nSteps):
+            s, _ = env.reset()
+            while True:
+                a = env.action_space.sample()
+                s_, r, done, truncated, _ = env.step(env.action_space.sample())
+                self.remember(Observation(s, a, r, s_, done))
+                s = s_
+                if done or truncated:
+                    break
+        return
+
+    def train(self, env: gym.Env, nEpisodes: int, V: bool = False) -> DotDict[str, np.ndarray | list]:
         """
         Trains the agent on the given environment for a given number of episodes.
 
@@ -101,18 +115,12 @@ class DQLAgent:
                 # take action and observe reward and next state
                 s_, r, done, truncated, _ = env.step(a)
                 # housekeeping
+                self.remember(Observation(s, a, r, s_, done))
                 R[ep] += r
                 A[ep, a] += 1
                 N[a] += 1
-                o = Observation(s, a, r, s_, done)
                 # update state
                 s = s_
-                
-                # add observation to buffer(s)
-                self.buffer.add(o)
-                if self.usingER:
-                    self.replayBuffer.add(o)
-
                 if done or truncated:
                     break
             
@@ -131,7 +139,7 @@ class DQLAgent:
             # anneal the exploration parameter
             self.eS.anneal()
 
-        return {'rewards': R, 'actions': A, 'losses': np.array(L, dtype=np.float32)}
+        return DotDict(rewards=R, actions=A, losses=np.array(L, dtype=np.float32))
 
     def reset(self) -> None:
         """ Resets all relevant agent's member variables. """
@@ -147,6 +155,17 @@ class DQLAgent:
             self.targetModel = self.createModel()
         return
     
+    ##########
+    # Memory #
+    ##########
+
+    def remember(self, observation: Observation) -> None:
+        """ Adds an observation to the agent's buffer(s). """
+        self.buffer.add(observation)
+        if self.usingER:
+            self.replayBuffer.add(observation)
+        return
+
     #########
     # Model #
     #########

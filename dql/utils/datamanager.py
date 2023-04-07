@@ -12,9 +12,13 @@ from keras import Sequential
 
 class DataManager:
 
-    def __init__(self, runID: str) -> None:
+    def __init__(self, runID: str, r: bool = False) -> None:
+        """
+        When specifying r=True, the DataManager will load the data from the runID folder
+        and not try to make a new one when this folder already exists.
+        """
         self.basePath = Path(P.data) / runID
-        if self.basePath.exists():
+        if self.basePath.exists() and not r:
             i = 1
             while True:
                 self.basePath = Path(P.data) / f'{runID}_{i}'
@@ -77,7 +81,8 @@ class DataManager:
         return DotDict(
             runID = data.runID,
             numRepetitions = data.numRepetitions,
-            numEpisodes = data.numEpisodes
+            numEpisodes = data.numEpisodes,
+            numWarmupSteps = data.numWarmupSteps
         )
     
     def _extractParamData(self, data: DotDict) -> DotDict:
@@ -199,6 +204,7 @@ class ConcatDataManager(DataManager):
                 runID = data.runID,
                 numRepetitions = data.numRepetitions,
                 numEpisodes = data.numEpisodes,
+                numWarmupSteps = data.numWarmupSteps,
                 runs = 1
             )
         with open(path) as f:

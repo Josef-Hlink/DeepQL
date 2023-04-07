@@ -61,15 +61,17 @@ def main():
     for rep in range(args.numRepetitions):
 
         print(f'Running repetition {rep+1} of {args.numRepetitions}')
+        agent.randomWarmup(env, args.numWarmupSteps)
         results = agent.train(env, args.numEpisodes, V)
         
-        R[rep] = results['rewards']
-        A[rep] = results['actions']
-        L.append(results['losses'])
+        R[rep] = results.rewards
+        A[rep] = results.actions
+        L.append(results.losses)
         
-        printD(f'Average reward: {np.mean(results["rewards"])}')
-        printD(f'Action distribution:\n{np.sum(results["actions"], axis=0) / np.sum(results["actions"])}')
-        printD(f'Average loss: {np.mean(results["losses"])}')
+        printD(f'Average reward: {np.mean(results.rewards):.3f}')
+        normAction0 = (results.actions / np.sum(results.actions, axis=1, keepdims=True))[:, 0]
+        printD(f'Average action bias: {np.mean(np.abs(normAction0 - 0.5) * 2):.3f}')
+        printD(f'Average loss: {np.nanmean(results.losses):.3f}')
         
         dataManager.saveModel(agent.model, kind='behaviour')
         if agent.usingTN:
@@ -86,8 +88,6 @@ def main():
     dataManager.saveActions(A)
     dataManager.saveLosses(L)
     dataManager.createSummary(data)
-
-    del agent, env, dataManager, R, A
 
     if args.render:
         env = gym.make('CartPole-v1', render_mode='human')

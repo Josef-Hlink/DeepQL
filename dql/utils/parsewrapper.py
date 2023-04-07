@@ -23,13 +23,16 @@ class ParseWrapper:
             type=float, default=0.001, help=f'Learning rate ({UC.a})'
         )
         parser.add_argument('-g', dest='gamma',
-            type=float, default=0.999, help=f'Discount factor ({UC.g})'
+            type=float, default=0.99, help=f'Discount factor ({UC.g})'
         )
         parser.add_argument('-ne', dest='numEpisodes',
             type=int, default=1000, help='Budget in episodes'
         )
         parser.add_argument('-nr', dest='numRepetitions',
             type=int, default=5, help='Number of repetitions'
+        )
+        parser.add_argument('-nw', dest='numWarmupSteps',
+            type=int, default=0, help='Number of random steps before training'
         )
         parser.add_argument('-bs', dest='batchSize',
             type=int, default=32, help='Batch size'
@@ -49,7 +52,7 @@ class ParseWrapper:
         
         parser.add_argument('-I', dest='runID',
             type=str, default=None,
-            help='Run ID used for saving results (default: yyyymmdd-hhmmss)'
+            help='Run ID used for saving results (default will be set to <yyyymmdd-hhmmss>)'
         )
         parser.add_argument('-C', '--concat', action='store_true', help='Concatenate results to existing results directory')
         parser.add_argument('-V', '--verbose', action='store_true', help='Verbose output')
@@ -95,6 +98,8 @@ class ParseWrapper:
             'Number of episodes must be in {1 .. 50,000}'
         assert 0 < self.args.numRepetitions <= 100, \
             'Number of repetitions must be in {1 .. 100}'
+        assert 0 <= self.args.numWarmupSteps <= 10_000, \
+            'Number of random steps must be in {0 .. 10,000}'
         assert self.args.batchSize in {1, 2, 4, 8, 16, 32, 64, 128, 256, 512}, \
             'Batch size must be a power of 2 in {1 .. 512}'
         if self.args.memoryReplay:
