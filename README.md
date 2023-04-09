@@ -40,21 +40,22 @@ dql -nr 5 -ne 5000 -es boltzmann -V -R
 This will run the algorithm 5 independent times for 5000 episodes each, using the Boltzmann exploration strategy, with verbose output and the trained agent's behaviour being rendered after each repetition.
 
 For more intensive experiments, we might run into memory issues.
-To get around this, you should run the `dqlw.sh` script, which will call `dql` with the arguments you provide for `-nr <x>` independent times, i.e. it calls `dql` `x` times with the same arguments.
+To get around this, you should run the `dqlw.sh` script, which will call `dql` with the arguments you provide for `-nr {x}` independent times, i.e. it calls `dql` `x` times with the same arguments.
 
 For example:
 
 ```bash
-cd experiments
+cd shellscripts
 ./dqlw.sh -nr 10 -ne 25000 -es boltzmann -I boltzmann
 # you probably do not want verbose output and rendering here
 ```
 
-In _experiments_, you will also find a couple of scripts that were used for the hyperparameter tuning.
+In _shellscripts_, you will find all of the scripts that can be used to replicate the experiments.
+It should be noted that you might get different results than the ones in the report, because fixing a random seed for the environment is not possible (to our knowledge).
 
 ## Results
 
-Results are automatically saved under _data/yymmdd-hhmmss/_ unless you specify a run id with `-I <id>`.
+Results are automatically saved under _data/yymmdd-hhmmss/_ unless you specify a run id with `-I {id}`.
 
 Example structure of results directory:
 
