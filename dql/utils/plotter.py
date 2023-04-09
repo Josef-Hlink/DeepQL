@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from dql.utils.statistics import calculateActionBias
+from dql.utils.namespaces import LC
 
 import numpy as np
 import matplotlib.pyplot as plt; plt.style.use('seaborn-v0_8')
@@ -107,7 +107,10 @@ class ColorPlot(Plot):
 
     def _fmtYAxis1(self) -> None:
         """ Limits and label. """
-        self.ax1.set_ylim(0, max(1, np.max(self.avgData)))
+        if self.label == 'action bias':
+            self.ax1.set_ylim(0, 1)
+        else:
+            self.ax1.set_ylim(0, 500)
         self.ax1.set_ylabel(f'avg. {self.label}')
         return
 
@@ -223,3 +226,91 @@ class LossPlot(Plot):
             spine.set_linewidth(1.5)
         self.fig.tight_layout()
         return
+
+
+class ComparisonPlot(Plot):
+    """
+    Plots a given number of different configurations in one figure.
+    The upper figure will contain the rewards (avg over reps) with a low opacity,
+    as well as a smoothed version of the same color, but with a higher opacity.
+    The lower figure works the same way, but for the action biases.
+    """
+
+    def __init__(self, data: list[tuple[np.ndarray]], labels: list[str], title: str) -> None:
+        """
+        The data takes the following form:
+        For each entry in the list, a tuple with (rewards, action biases) is expected.
+        """
+        assert len(data) == len(labels), 'data and labels must have the same length'
+        for entry in data:
+            assert len(entry) == 2, 'each entry in data must be a tuple with (rewards, action biases)'
+        self.data = data
+        self.labels = labels
+        self.title = title
+        self.colors = {
+            'BL': 'tab:green', 'ER': 'tab:blue',
+            'TN': 'tab:red', 'TR': 'tab:purple',
+            'EA1-EG': 'tab:blue', 'EA4-EG': 'tab:cyan',
+            'EA1-BM': 'tab:red', 'EA4-BM': 'tab:pink',
+            'EA0-UC': 'tab:green'
+        }
+        self.fullLabels = {
+            'BL': 'Baseline', 'ER': 'Experience Replay',
+            'TN': 'Target Network', 'TR': 'Target Network + Experience Replay',
+            'EA1-EG': f'{LC.e}-greedy (1)', 'EA1-BM': 'Boltzmann (1)',
+            'EA4-EG': f'{LC.e}-greedy (4)', 'EA4-BM': 'Boltzmann (4)',
+            'EA0-UC': 'UCB (0)'
+        }
+        self._processData()
+        self._plot()
+        return
+    
+    def _processData(self) -> None:
+        self.db = {l: {'r': d[0], 'ab': d[1]} for l, d in zip(self.labels, self.data)}
+        self.nReps = self.db[self.labels[0]]['r'].shape[0]
+        self.nEps = self.db[self.labels[0]]['r'].shape[1]
+        self.smWindow = (self.nEps // 10 + 1)
+        if self.smWindow % 2 == 0:
+            self.smWindow += 1
+        return
+    
+    def _plot(self) -> None:
+        self.fig, (self.ax1, self.ax2) = plt.subplots(2, 1, figsize=(8, 7), sharex=True)
+        for l in self.labels:
+            self._plotRewards(l)
+            self._plotActionBiases(l)
+        self.ax1.legend(loc='upper left')
+        self._fmtGeneral()
+        self.fig.suptitle(self.title, fontsize=14, weight='bold')
+        self.fig.tight_layout()
+        return
+    
+    def _plotRewards(self, label: str) -> None:
+        R = self.db[label]['r']
+        avg = np.mean(R, axis=0)
+        smoothed = self.smooth3(avg, self.smWindow)
+        self.ax1.plot(avg, color=self.colors[label], alpha=.2)
+        self.ax1.plot(smoothed, linewidth=3, color=self.colors[label], alpha=.8, label=self.fullLabels[label])
+        self.ax1.set_ylabel('reward')
+        self.ax1.set_xlim(0, self.nEps)
+        return
+    
+    def _plotActionBiases(self, label: str) -> None:
+        AB = self.db[label]['ab']
+        avg = np.mean(AB, axis=0)
+        smoothed = self.smooth3(avg, self.smWindow)
+        self.ax2.plot(avg, color=self.colors[label], alpha=.2)
+        self.ax2.plot(smoothed, linewidth=3, color=self.colors[label], alpha=.8, label=self.fullLabels[label])
+        self.ax2.set_ylabel('action bias')
+        self.ax2.set_xlim(0, self.nEps)
+        self.ax2.set_xlabel('episode', fontsize=12)
+        self.ax2.set_xticks(np.linspace(0, self.nEps, 11))
+        self.ax2.xaxis.set_major_formatter(lambda x, _: f'{x / 1000:.0f}k' if x >= 1000 else f'{x:.0f}')
+        return
+    
+    def _fmtGeneral(self) -> None:
+        for ax in [self.ax1, self.ax2]:
+            ax.grid(color='w', linestyle='--', linewidth=1, alpha=.75)
+            for spine in ax.spines.values():
+                spine.set_edgecolor('k')
+                spine.set_linewidth(1.5)
