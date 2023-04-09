@@ -4,8 +4,9 @@
 # if the agent can reach an average reward of 40,
 # this means it has done ±2M (40*50k) steps, which is quite a lot
 
-DEFAULTS="-nr 5 -ne 50000 -bs 512 -V -g 0.999"
-NAME="BF"
+
+DEFAULTS="-nr 6 -ne 50000 -bs 512 -V -g 0.999"
+NAME="ABF"
 
 echo "BASELINE"
 ./dqlw.sh $DEFAULTS -I ${NAME}-BL
